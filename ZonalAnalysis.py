@@ -100,7 +100,7 @@ def rotatePt(dX,dY,gt,theta):
 
 def zonal_stats(gdb, ras, lyrName=None, fldname=None , 
 	projIn=None, projOut=None, buffDist=0, fact=30, 
-	nd_thresh=100, filenm='outputfile', csvout=False):
+	outND=np.nan, nd_thresh=100, filenm='outputfile', csvout=False):
 	"""
 	Compute summary statistics of raster cells within vector zone
 
@@ -126,7 +126,11 @@ def zonal_stats(gdb, ras, lyrName=None, fldname=None ,
 	fact: int, default 30, Ratio of vector area to raster cell size area. 
 			Used to resample the raster to a smaller cell size
 			when vector area is much smaller than raster cell size
-	outND: float, default numpy NAN (np.nan), No Data value to use as output
+	outND: float, default numpy NAN (np.nan), no data value to use in output
+	nd_thresh: float, default 100, threshold percent of no data within vector 
+			to return no data value (outND); for example, 60 means that 
+			if there is greater than 60% no data within vector area, 
+			all statistics will return as no data
 	filenm: str, default 'outputfile', Filepath and name of output file 
 			without an extension specified. Default will create a file in the 
 			current working directory.
