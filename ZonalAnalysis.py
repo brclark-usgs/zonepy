@@ -126,7 +126,7 @@ def zonal_stats(gdb, ras, lyrName=None, fldname=None ,
 	fact: int, default 30, Ratio of vector area to raster cell size area. 
 			Used to resample the raster to a smaller cell size
 			when vector area is much smaller than raster cell size
-	outND: float, default , No Data value to use as output
+	outND: float, default numpy NAN (np.nan), No Data value to use as output
 	filenm: str, default 'outputfile', Filepath and name of output file 
 			without an extension specified. Default will create a file in the 
 			current working directory.
@@ -581,14 +581,3 @@ def zonal_category(gdb, ras, lyrName=None, fldname=None, projIn=None,
 		df.to_csv('{}.csv'.format(filenm), index=False)
 	else:
 		df.to_pickle('{}.pkl'.format(filenm))
-
-
-def PckltoRas():
-	"""
-	Convert pickle file of vector zone values to raster 
-
-	Parameters
-	----------
-	"""
-	#read pickle
-	#check for mean? if so, create mean--otherwise category... loop on cmap?
