@@ -18,3 +18,9 @@ scipy
 math
 matplotlib (what to do with prints??)
 
+Current version of zonepy:
+....
+
+
+
+
