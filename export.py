@@ -41,19 +41,19 @@ def RasCreate(pklfile, vec, lyrName=None, stat='mean',
     # Get extent of single polygon
     feat = vlyr.GetNextFeature()
     featext = feat.GetGeometryRef().GetEnvelope()
-    print(featext)
+    # print(featext)
     xsz = featext[1] - featext[0] #resolution in x
     ysz = featext[3] - featext[2] #resolution in y
     sz = (xsz, ysz)
-    print(sz)
+    # print(sz)
 
     # Get projection and extent
     vsr = vlyr.GetSpatialRef()
     # print(vsr)
     vext = vlyr.GetExtent()
-    cols = int((vext[1] - vext[0]) / xsz)
-    rows = int((vext[3] - vext[2]) / ysz)
-    print(rows,cols)
+    cols = int(round(((vext[1] - vext[0]) / xsz),0))
+    rows = int(round(((vext[3] - vext[2]) / ysz),0))
+    # print(rows,cols)
 
     # Read pickle file of summary stats
     df = pd.read_pickle(pklfile)
@@ -90,8 +90,8 @@ def writeRaster(grid, ext, sz, prj, outTiff='outras.tif', nodata=-9999):
     # Calculate angle and coordinates
     angle = 0
     angle = angle * -1. * np.pi / 180.
-    geotransform = (vext[0], sz[0] * np.cos(angle), -sz[0] * np.sin(angle),
-                    vext[3], -sz[1] * np.sin(angle), -sz[1] * np.cos(angle)) 
+    geotransform = (ext[0], sz[0] * np.cos(angle), -sz[0] * np.sin(angle),
+                    ext[3], -sz[1] * np.sin(angle), -sz[1] * np.cos(angle)) 
 
     # Create raster to hold data
     nrow = grid.shape[0]
@@ -105,7 +105,7 @@ def writeRaster(grid, ext, sz, prj, outTiff='outras.tif', nodata=-9999):
 
     # Set coordinates and projection
     ds.SetGeoTransform(geotransform)  
-    ds.SetProjection(str(vsr))
+    ds.SetProjection(str(prj))
 
     # Write array to raster
     band.WriteArray(grid)
