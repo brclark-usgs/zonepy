@@ -202,9 +202,7 @@ def zonal_stats(gdb, ras, lyrName=None, fldname=None ,
 		else:
 			fldid = feat.GetField(fldname)
 
-		fldid = feat.GetField(fldname)
-
-		sys.stdout.write('\r{} of {}, staid: {}\n'.format(i+1, lenid, fldid))
+		sys.stdout.write('\r{} of {}, id: {}\n'.format(i+1, lenid, fldid))
 		sys.stdout.flush()
 
 		#Buffer well points, using buffDist input
