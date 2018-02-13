@@ -35,7 +35,8 @@ def bbox_to_pixel_offsets(gt, bbox, rsize, theta=0, res=1):
 	theta: degree, angle to rotate coordinates
 	res: float, uhhhh Leslie??
 
-"""
+    """
+
 	originX = gt[0]
 	originY = gt[3]
 	pixel_width = gt[1]
@@ -194,7 +195,15 @@ def zonal_stats(gdb, ras, lyrName=None, fldname=None ,
 	statDict = {}
 	lenid = len(vlyr)
 	for i, feat in enumerate(vlyr):
+		if fldname is None:
+			fldid = feat.GetFID()
+			lyrdef = vlyr.GetLayerDefn()
+			fldname = lyrdef.GetFieldDefn(0).GetName()
+		else:
+			fldid = feat.GetField(fldname)
+
 		fldid = feat.GetField(fldname)
+
 		sys.stdout.write('\r{} of {}, staid: {}\n'.format(i+1, lenid, fldid))
 		sys.stdout.flush()
 
@@ -440,7 +449,6 @@ def zonal_category(gdb, ras, lyrName=None, fldname=None, projIn=None,
 	else:
 		vlyr = vds.GetLayer(0)
 
-	
 	# Create memory drivers to hold arrays
 	mem_drv = ogr.GetDriverByName('Memory')
 	driver = gdal.GetDriverByName('MEM')
@@ -464,20 +472,20 @@ def zonal_category(gdb, ras, lyrName=None, fldname=None, projIn=None,
 	for i, feat in enumerate(vlyr):
 		if fldname is None:
 			fldid = feat.GetFID()
-			# fldname = feat.GetName(0) #Not working, how to return FID/OID column??
+			lyrdef = vlyr.GetLayerDefn()
+			fldname = lyrdef.GetFieldDefn(0).GetName()
 		else:
 			fldid = feat.GetField(fldname)
 		sys.stdout.write('\r{} of {}, staid: {}'.format(i+1, lenid, fldid))
 		sys.stdout.flush()
+
 		#Buffer well points, using buffDist input (in meters)
 		geom = feat.GetGeometryRef()
 		if projOut != None:
 			geom.Transform(transform)
 		if isinstance(buffDist, str):
 			buffDist = feat.GetField(buffDist)
-			# buff = feat.GetGeometryRef()
-			# buff.Transform(transform)
-		# else:
+
 		buff = geom.Buffer(buffDist) 
 		vec_area = buff.GetArea()
 		# print('Ratio Buffer to Raster: ', vec_area/ras_area)
@@ -494,9 +502,6 @@ def zonal_category(gdb, ras, lyrName=None, fldname=None, projIn=None,
 				zooms = int(np.sqrt(ras_area/(vec_area/fact)))
 
 			src_array = rb.ReadAsArray(*src_offset)
-			# print(src_array)
-			# plt.imshow(src_array)
-			# plt.show()
 
 			# Calculate new geotransform of the feature subset
 			if abs(theta) > 0: # if raster is rotated
@@ -526,22 +531,13 @@ def zonal_category(gdb, ras, lyrName=None, fldname=None, projIn=None,
 			rvds.SetGeoTransform(new_gt)
 			gdal.RasterizeLayer(rvds, [1], mem_layer, burn_values=[1])
 			rv_array = rvds.ReadAsArray()
-			# print(rv_array)
-			# plt.imshow(rv_array)
-			# plt.show()
 
 			# Resample the raster (only changes when zooms not 1)
 			src_re = zoom(src_array, zooms, order = 0)
-			# print(src_re)
-			# plt.imshow(src_re)
-			# plt.show()
 
 			# Mask the source data array with our current feature
 			# we take the logical_not to flip 0<->1 to get the correct mask effect
 			masked = np.ma.MaskedArray(src_re, mask = np.logical_not(rv_array))
-			# print(masked)
-			# plt.imshow(masked)
-			# plt.show()
 
 		#If mask is empty, use NoData column
 		if masked is None:
@@ -575,7 +571,6 @@ def zonal_category(gdb, ras, lyrName=None, fldname=None, projIn=None,
 	cols = df.columns.tolist()
 	cols[0] = fldname
 	df.columns = cols
-	# print(df)
 
 	## OUTPUT options
 	if filenm == 'outputfile':
