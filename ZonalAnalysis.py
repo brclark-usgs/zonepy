@@ -234,10 +234,6 @@ def zonal_stats(gdb, ras, lyrName=None, fldname=None ,
 
 			# src_array = rb.ReadAsArray(*src_offset)
 			src_array = rb.ReadAsArray(src_offset[0],src_offset[1],src_offset[2],src_offset[3])
-			# print('src_array = \n{}'.format(src_array))
-			# plt.imshow(src_array)
-			# plt.colorbar()
-			# plt.show()
 
 			#Calculate new geotransform of the feature subset
 			if abs(theta) > 0: # if raster is rotated
@@ -276,18 +272,9 @@ def zonal_stats(gdb, ras, lyrName=None, fldname=None ,
 			rvds.SetGeoTransform(new_gt)
 			gdal.RasterizeLayer(rvds, [1], mem_layer, None, None, [1], ['ALL_TOUCHED=True']) #burn_values=[1])
 			rv_array = rvds.ReadAsArray()
-			# print('rv_array = \n{}'.format(rv_array)) 
-			# plt.imshow(rv_array)
-			# plt.colorbar()
-			# plt.show()
-			# print('\n{}'.format(rv_array.shape))
 
 			# Resample the raster (only changes when zooms not 1)
 			src_re = zoom(src_array, zooms, order = 0)
-			# print('rc_re = \n{}'.format(src_re))
-			# plt.imshow(src_re)
-			# plt.show()
-			# print('\n{}'.format(src_re.shape))
 			
 			# Mask the source data array with our current feature
 			# we take the logical_not to flip 0<->1 to get the correct mask effect
@@ -296,10 +283,6 @@ def zonal_stats(gdb, ras, lyrName=None, fldname=None ,
 				mask=np.logical_or(
 					src_re == nodata_value,
 					np.logical_not(rv_array))) 
-			# print('masked = \n{}'.format(masked))
-			# plt.imshow(masked)
-			# plt.show()
-			# print('\n{}'.format(masked.shape))
 
 			# Calculate the percent of No Data in masked array
 			nd = 0
@@ -353,7 +336,6 @@ def zonal_stats(gdb, ras, lyrName=None, fldname=None ,
 	cols = df.columns.tolist()
 	cols[0] = fldname
 	df.columns = cols
-	# print(df)
 
 	## OUTPUT options
 	if csvout == True:
@@ -432,11 +414,11 @@ def zonal_category(gdb, ras, lyrName=None, fldname=None, projIn=None,
 	orig_nodata = rb.GetNoDataValue()
 
 	# Create cmap if none provided
+	cmapFlag = True
 	if cmap is None:
-		vals = np.unique(rb.ReadAsArray())
-		cmap = {v:v for v in vals}
-	else:
-		cmap[orig_nodata] = 'NoData'
+		cmap = {}
+		cmapFlag = False
+
 	print('Raster NODATA Value: ', orig_nodata)
 	print('Category keys and values:', cmap)
 
@@ -543,6 +525,11 @@ def zonal_category(gdb, ras, lyrName=None, fldname=None, projIn=None,
 			pixel_count['NoData'] = 100
 		else:
 			keys, counts = np.unique(masked.compressed(), return_counts=True)
+			if cmapFlag == False:
+				for k in keys:
+					cmap[k] = k
+			else:
+				cmap[orig_nodata] = 'NoData'
 
 			# Create Dictionary of cmaps and counts
 			pixel_count = dict(zip([cmap[k] for k in keys],
@@ -575,6 +562,7 @@ def zonal_category(gdb, ras, lyrName=None, fldname=None, projIn=None,
 		cwd = os.getcwd()
 		filenm = os.path.join(cwd, 'outputfile')
 	if csvout == True:
+		print(filenm)
 		df.to_csv('{}.csv'.format(filenm), index=False)
 	else:
 		df.to_pickle('{}.pkl'.format(filenm))
