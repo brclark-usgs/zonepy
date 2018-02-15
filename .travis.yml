@@ -1,0 +1,67 @@
+language: python
+os: linux
+dist: trusty
+sudo: required
+# compiler: gcc
+
+matrix:
+  include:
+    # - python: 2.7
+    # - python: 3.4
+    # - python: 3.5
+    - python: 3.6
+    # - python: "3.6-dev"
+    # - python: "nightly"
+
+  # allow_failures:
+    # - python: "3.6-dev"
+    # - python: "nightly"
+
+cache:
+  pip: true
+  directories:
+    - $HOME/.cache/pip
+    - $HOME/.local
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - python-pip
+      - gdal-bin
+      - libgdal-dev
+
+# env:
+#   global:
+#     - NO_NET=1
+
+# command to install dependencies
+install:
+    - if [[ ! -d "$HOME/.local/bin" ]]; then
+        mkdir "$HOME/.local/bin";
+      fi
+    - export PATH="$HOME/.local/bin:$PATH"
+    # - if [[ $TRAVIS_PYTHON_VERSION > 3.4 ]];
+    #   then pip install -r requirements.travis.txt;
+    #   fi
+    - pip install gdal
+    # - pip install --upgrade jupyter
+    # - pip install nbconvert
+    # - pip install nose-timer
+    # - pip install coveralls
+
+
+# command to run tests
+script: 
+    - export PYTHONPATH=$PYTHONPATH:.
+    - echo python path; python -c "from __future__ import print_function; import sys; print(sys.path)"
+    - python -c "import os; is_travis = 'TRAVIS' in os.environ; print('TRAVIS {}'.format(is_travis))"
+    - echo numpy version; python -c "import numpy; print(numpy.version.version)"
+    - echo gdal version; python -c "from osgeo import gdal; print(gdal.__version__)"
+    # - nosetests -v build_exes.py --with-id --with-timer -w ./autotest
+    # - nosetests -v autotest_notebooks.py --with-id --with-timer -w ./autotest --with-coverage --cover-package=flopy
+    # - nosetests -v autotest_scripts.py --with-id --with-timer -w ./autotest --with-coverage --cover-package=flopy
+    # - nosetests -v --with-id --with-timer -w ./autotest --with-coverage --cover-package=flopy
+# after_success:
+    # - coveralls

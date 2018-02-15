@@ -18,7 +18,7 @@ import pandas as pd
 from scipy import stats
 from scipy.ndimage import zoom
 from math import radians, degrees, atan
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import warnings
 gdal.PushErrorHandler('CPLQuietErrorHandler')
  
