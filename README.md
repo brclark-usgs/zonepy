@@ -1,6 +1,8 @@
 ## zonepy
 zonal analysis tools for raster and vector datasets
 
+[![Build Status](https://travis-ci.org/brclark-usgs/zonepy.svg?branch=develop)](https://travis-ci.org/brclark-usgs/zonepy)
+
 # Introduction
 
 zonepy allows users to complete zonal analysis operations within vector data 

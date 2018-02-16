@@ -60,7 +60,7 @@ install:
   # Replace dep1 dep2 ... with your dependencies
   - conda create -q -n py36 python=$TRAVIS_PYTHON_VERSION numpy pandas scipy gdal
   - source activate py36
-  - python setup.py install
+  # - python setup.py install
 
 
 
@@ -71,6 +71,7 @@ script:
     - python -c "import os; is_travis = 'TRAVIS' in os.environ; print('TRAVIS {}'.format(is_travis))"
     - echo numpy version; python -c "import numpy; print(numpy.version.version)"
     - echo gdal version; python -c "from osgeo import gdal; print(gdal.__version__)"
+    - python autotest/pt_stats.py
     # - nosetests -v build_exes.py --with-id --with-timer -w ./autotest
     # - nosetests -v autotest_notebooks.py --with-id --with-timer -w ./autotest --with-coverage --cover-package=flopy
     # - nosetests -v autotest_scripts.py --with-id --with-timer -w ./autotest --with-coverage --cover-package=flopy
