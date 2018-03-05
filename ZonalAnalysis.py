@@ -175,6 +175,9 @@ def zonal_stats(gdb, ras, lyrName=None, fldname=None ,
 	else:
 		vlyr = vds.GetLayer(0)
 
+	# Check geometry
+	gtype = vlyr.GetGeomType()
+
 	#Create memory drivers to hold arrays
 	mem_drv = ogr.GetDriverByName('Memory')
 	driver = gdal.GetDriverByName('MEM')
@@ -203,7 +206,6 @@ def zonal_stats(gdb, ras, lyrName=None, fldname=None ,
 		sys.stdout.flush()
 
 		#Buffer well points, using buffDist input
-		geom = feat.GetGeometryRef()
 		if projOut != None:
 			geom.Transform(transform)
 		buff = geom.Buffer(buffDist) 
