@@ -2,7 +2,6 @@ language: python
 os: linux
 dist: trusty
 sudo: required
-# compiler: gcc
 
 matrix:
   include:
@@ -17,29 +16,10 @@ matrix:
     # - python: "3.6-dev"
     # - python: "nightly"
 
-# cache:
-#   pip: true
-#   directories:
-#     - $HOME/.cache/pip
-#     - $HOME/.local
-
-# addons:
-#   apt:
-#     sources:
-#       - ubuntu-toolchain-r-test
-#     packages:
-#       - python-pip
-#       - gdal-bin
-#       - libgdal-dev
-
 # whitelist
 branches:
   only:
     - develop
-
-# env:
-#   global:
-#     - NO_NET=1
 
 # command to install dependencies
 install:
@@ -57,10 +37,8 @@ install:
   # Useful for debugging any issues with conda
   - conda info -a
 
-  # Replace dep1 dep2 ... with your dependencies
   - conda create -q -n py36 python=$TRAVIS_PYTHON_VERSION numpy pandas scipy gdal
   - source activate py36
-  # - python setup.py install
 
 
 
@@ -72,9 +50,5 @@ script:
     - echo numpy version; python -c "import numpy; print(numpy.version.version)"
     - echo gdal version; python -c "from osgeo import gdal; print(gdal.__version__)"
     - python autotest/pt_stats.py
-    # - nosetests -v build_exes.py --with-id --with-timer -w ./autotest
-    # - nosetests -v autotest_notebooks.py --with-id --with-timer -w ./autotest --with-coverage --cover-package=flopy
-    # - nosetests -v autotest_scripts.py --with-id --with-timer -w ./autotest --with-coverage --cover-package=flopy
-    # - nosetests -v --with-id --with-timer -w ./autotest --with-coverage --cover-package=flopy
 # after_success:
     # - coveralls

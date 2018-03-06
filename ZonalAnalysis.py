@@ -15,10 +15,8 @@ from osgeo import gdal, ogr, osr
 from osgeo.gdalconst import *
 import numpy as np
 import pandas as pd
-from scipy import stats
 from scipy.ndimage import zoom
 from math import radians, degrees, atan
-# import matplotlib.pyplot as plt
 import warnings
 gdal.PushErrorHandler('CPLQuietErrorHandler')
  
@@ -566,3 +564,50 @@ def zonal_category(gdb, ras, lyrName=None, fldname=None, projIn=None,
 		df.to_csv('{}.csv'.format(filenm), index=False)
 	else:
 		df.to_pickle('{}.pkl'.format(filenm))
+
+def extractByPoint(rast, gbd, lyrName, nodata=-9999):
+	"""
+	warning - does not work on rotated rasters
+	"""
+
+	src_ds = gdal.Open(ras, GA_ReadOnly)
+	assert(rds)
+	rb = rds.GetRasterBand(1)
+	rgt = rds.GetGeoTransform()
+
+    gdal.UseExceptions() #so it doesn't print to screen everytime point is outside grid
+    # Convert from map to pixel coordinates.
+    # Only works for geotransforms with no rotation.
+    # If raster is rotated, see http://code.google.com/p/metageta/source/browse/trunk/metageta/geometry.py#493
+
+	# Open feature class
+	vds = ogr.Open(gdb, GA_ReadOnly)  
+	if lyrName != None:
+		vlyr = vds.GetLayerByName(lyrName)
+	else:
+		vlyr = vds.GetLayer(0)
+
+
+    ptval = {}
+    for feat in vlyr:	
+    	fldid = feat.GetFID()
+    	geom = feat.GetGeometryRef()
+    	mx = geom.GetX()
+    	my = geom.GetY()
+
+	    px = int((mx - gt[0]) / gt[1]) #x pixel
+	    py = int((my - gt[3]) / gt[5]) #y pixel
+	    try: #in case raster isnt full extent
+	        structval = rb.ReadRaster(px,py,1,1,buf_type=gdal.GDT_Float32) #Assumes 32 bit int aka 'float'
+	        intval = struct.unpack('f' , structval) #use the 'float' format code (8 bytes) not int (4 bytes)
+	        val = intval[0]
+	        if intval[0] < -9999:
+	            val = -9999
+	        ptval[fldid] = val
+	    except:
+	        ptval[fldid] = nodata
+	        # pass
+	src_ds = None
+	vlyr = None
+
+    return(ptval)

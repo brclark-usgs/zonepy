@@ -13,16 +13,18 @@ floating (continous data) or integer (categorical data) in geotif format.
 
 # Installation
 
+
+
+
+# Dependencies:
+
 Python versions:
 developed with Python 3.6 (or later)
 
-Dependencies:
-osgeo
+osgeo (gdal)
 numpy
 pandas
 scipy
-math
-matplotlib (what to do with prints??)
 
 Current version of zonepy:
 ....
