@@ -76,6 +76,7 @@ def bbox_to_pixel_offsets(gt, bbox, rsize, theta=0, res=1):
 	# print('src_offset = {},{},{},{}'.format(x1, y1, xsize, ysize))
 	return(x1,y1,xsize,ysize)
 
+
 def rotatePt(dX,dY,gt,theta):
 	"""
 	Rotate coordinates to user specified angle
@@ -96,6 +97,11 @@ def rotatePt(dX,dY,gt,theta):
 
 	return(newx,newy)
  
+ 
+def readFiles(gdb, ras, lyrName=None, fldname=None , 
+	projIn=None, projOut=None, buffDist=0, fact=30, 
+	outND=np.nan, nd_thresh=100, filenm='outputfile', csvout=False):
+
 
 def zonal_stats(gdb, ras, lyrName=None, fldname=None , 
 	projIn=None, projOut=None, buffDist=0, fact=30, 
@@ -567,6 +573,7 @@ def zonal_category(gdb, ras, lyrName=None, fldname=None, projIn=None,
 		df.to_csv('{}.csv'.format(filenm), index=False)
 	else:
 		df.to_pickle('{}.pkl'.format(filenm))
+
 
 def extractByPoint(rast, gbd, lyrName, nodata=-9999):
 	"""
