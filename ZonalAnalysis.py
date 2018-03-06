@@ -173,6 +173,9 @@ def zonal_stats(gdb, ras, lyrName=None, fldname=None ,
 	else:
 		vlyr = vds.GetLayer(0)
 
+	# Check geometry
+	gtype = vlyr.GetGeomType()
+
 	#Create memory drivers to hold arrays
 	mem_drv = ogr.GetDriverByName('Memory')
 	driver = gdal.GetDriverByName('MEM')
@@ -195,16 +198,12 @@ def zonal_stats(gdb, ras, lyrName=None, fldname=None ,
 	for i, feat in enumerate(vlyr):
 		if fldname is None:
 			fldid = feat.GetFID()
-			lyrdef = vlyr.GetLayerDefn()
-			fldname = lyrdef.GetFieldDefn(0).GetName()
 		else:
 			fldid = feat.GetField(fldname)
-
 		sys.stdout.write('\r{} of {}, id: {}\n'.format(i+1, lenid, fldid))
 		sys.stdout.flush()
 
 		#Buffer well points, using buffDist input
-		geom = feat.GetGeometryRef()
 		if projOut != None:
 			geom.Transform(transform)
 		buff = geom.Buffer(buffDist) 
@@ -312,14 +311,14 @@ def zonal_stats(gdb, ras, lyrName=None, fldname=None ,
 		# print('no data percent: {}, no data threshold: {}\n'.format(nd,nd_thresh))
 		if masked is not None:
 			if np.isnan(float(np.ma.masked_invalid(masked).mean())):
-				statDict[feat.GetField(fldname)] = no_stats # if all NAN, return -9999
+				statDict[fldid] = no_stats # if all NAN, return -9999
 			else:
 				if nd >= nd_thresh: # insufficient data, return -9999
-					statDict[feat.GetField(fldname)] = no_stats
+					statDict[fldid] = no_stats
 				else: # sufficient data, return stats
-					statDict[feat.GetField(fldname)] = feature_stats
+					statDict[fldid] = feature_stats
 		else:
-			statDict[feat.GetField(fldname)] = no_stats # if outside of raster extent, return -9999
+			statDict[fldid] = no_stats # if outside of raster extent, return -9999
 
 	#clearing memory
 		rvds = None
@@ -332,7 +331,10 @@ def zonal_stats(gdb, ras, lyrName=None, fldname=None ,
 	df = df.T
 	df = df.reset_index()
 	cols = df.columns.tolist()
-	cols[0] = fldname
+	if fldname is None:
+		cols[0] = 'uniqueID'
+	else:
+		cols[0] = fldname
 	df.columns = cols
 
 	## OUTPUT options
@@ -450,8 +452,6 @@ def zonal_category(gdb, ras, lyrName=None, fldname=None, projIn=None,
 	for i, feat in enumerate(vlyr):
 		if fldname is None:
 			fldid = feat.GetFID()
-			lyrdef = vlyr.GetLayerDefn()
-			fldname = lyrdef.GetFieldDefn(0).GetName()
 		else:
 			fldid = feat.GetField(fldname)
 		sys.stdout.write('\r{} of {}, staid: {}'.format(i+1, lenid, fldid))
@@ -537,7 +537,7 @@ def zonal_category(gdb, ras, lyrName=None, fldname=None, projIn=None,
 				pixel_count[k] = v / pixtot * 100
 
 		# Create dictionary of station ids with pixel counts
-		statDict[feat.GetField(fldname)] = pixel_count
+		statDict[fldid] = pixel_count
 
 	#clearing memory
 		rvds = None
@@ -552,7 +552,10 @@ def zonal_category(gdb, ras, lyrName=None, fldname=None, projIn=None,
 	df = df.replace(np.nan,0) # NAN values are true zeros
 	df = df.reset_index()
 	cols = df.columns.tolist()
-	cols[0] = fldname
+	if fldname is None:
+		cols[0] = 'uniqueID'
+	else:
+		cols[0] = fldname
 	df.columns = cols
 
 	## OUTPUT options
