@@ -3,13 +3,15 @@
 import os, sys
 import numpy as np
 sys.path.append('./')
-import ZonalAnalysis as za
+import zonepy as zp
 
 gdb = os.path.join('examples', 'zonepy_pts.gpkg')
 ras = os.path.join('examples','zonepy_test.tif')
 lyrName = 'zonepy_pts'
 filenm = os.path.join('examples', 'outputfile')
 
-za.zonal_category(gdb, ras, lyrName=lyrName, fldname=None , 
+zc = zp.zonal.ZoneCat(gdb, ras, lyrName=lyrName, fldname=None , 
 	projIn=None, projOut=None, buffDist=100, cmap=None, fact=30, 
-	filenm=filenm, csvout=False)
+	filenm=filenm, csvout=True)
+zc.compute_category()
+
