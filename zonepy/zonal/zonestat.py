@@ -59,7 +59,7 @@ class ZoneStat(object):
     """
 
 
-    def __init__(self, gdb, ras, lyrName=None, fldname=None, projIn=None,
+    def __init__(self, gdb='', ras='', lyrName=None, fldname=None, projIn=None,
                  projOut=None, buffDist=0, fact=30, outND=np.nan, 
                  nd_thresh=100, filenm='outputfile', csvout=False, cmap=None):
 
@@ -378,50 +378,3 @@ class ZoneStat(object):
         else:
             df.to_pickle('{}.pkl'.format(self.filenm))
 
-
-    def extractByPoint(self):
-        """
-        warning - does not work on rotated rasters
-        """
-
-        src_ds = gdal.Open(self.ras, GA_ReadOnly)
-        assert(rds)
-        rb = rds.GetRasterBand(1)
-        self.__gt = rds.GetGeoTransform()
-
-        gdal.UseExceptions() #so it doesn't print to screen everytime point is outside grid
-        # Convert from map to pixel coordinates.
-        # Only works for geotransforms with no rotation.
-        # If raster is rotated, see http://code.google.com/p/metageta/source/browse/trunk/metageta/geometry.py#493
-
-        # Open feature class
-        vds = ogr.Open(self.gdb, GA_ReadOnly)  
-        if lyrName != None:
-            vlyr = vds.GetLayerByName(self.lyrName)
-        else:
-            vlyr = vds.GetLayer(0)
-
-
-        ptval = {}
-        for feat in vlyr:   
-            fldid = feat.GetFID()
-            geom = feat.GetGeometryRef()
-            mx = geom.GetX()
-            my = geom.GetY()
-
-            px = int((mx - self.__gt[0]) / self.__gt[1]) #x pixel
-            py = int((my - self.__gt[3]) / self.__gt[5]) #y pixel
-            try: #in case raster isnt full extent
-                structval = rb.ReadRaster(px,py,1,1,buf_type=gdal.GDT_Float32) #Assumes 32 bit int aka 'float'
-                intval = struct.unpack('f' , structval) #use the 'float' format code (8 bytes) not int (4 bytes)
-                val = intval[0]
-                if intval[0] < -9999:
-                    val = -9999
-                ptval[fldid] = val
-            except:
-                ptval[fldid] = self.outND
-                # pass
-        src_ds = None
-        vlyr = None
-
-        return(ptval)
