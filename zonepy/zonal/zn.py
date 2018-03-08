@@ -98,7 +98,7 @@ class ZoneClass(object):
 
         originX = self.__gt[0]
         originY = self.__gt[3]
-        # pixel_width = self.__gt[1]
+        pixel_width = self.__gt[1]
         pixel_height = self.__gt[5]
 
         if abs(self.__theta) > 0: # if raster is rotated
@@ -160,11 +160,11 @@ class ZoneClass(object):
      
     def openRaster(self):
         # Open raster
-        rds = gdal.Open(self.ras, GA_ReadOnly)
-        assert(rds)
-        rb = rds.GetRasterBand(1)
-        self.__gt = rds.GetGeoTransform()
-        self.__rsize = (rds.RasterXSize, rds.RasterYSize)
+        self.__rds = gdal.Open(self.ras, GA_ReadOnly)
+        assert(self.__rds)
+        self.__rb = self.__rds.GetRasterBand(1)
+        self.__gt = self.__rds.GetGeoTransform()
+        self.__rsize = (self.__rds.RasterXSize, self.__rds.RasterYSize)
         
         # Get raster cell size
         dx1 = self.__gt[1] # pixel width
@@ -173,7 +173,7 @@ class ZoneClass(object):
         dy2 = self.__gt[5] # pixel height
         len1 = np.sqrt(dx1**2 + dy1 **2)
         len2 = np.sqrt(dx2**2 + dy2 **2)
-        ras_area = len1 * len2
+        self.__ras_area = len1 * len2
 
         #if needed, angle of rotation (rotated rasters)
         xorig = self.__gt[0] 
@@ -188,33 +188,30 @@ class ZoneClass(object):
         res = self.__gt[2]/-np.sin(rads)
 
         #Get NoData value
-        self.__orig_nodata = rb.GetNoDataValue()
+        self.__orig_nodata = self.__rb.GetNoDataValue()
 
     def openVector(self):
         # Open feature class
-        vds = ogr.Open(self.gdb, GA_ReadOnly)  
+        self.__vds = ogr.Open(self.gdb, GA_ReadOnly)  
         if self.lyrName != None:
-            self.__vlyr = vds.GetLayerByName(self.lyrName)
+            self.__vlyr = self.__vds.GetLayerByName(self.lyrName)
         else:
-            self.__vlyr = vds.GetLayer(0)
+            self.__vlyr = self.__vds.GetLayer(0)
 
-        # Create memory drivers to hold arrays
-        mem_drv = ogr.GetDriverByName('Memory')
-        driver = gdal.GetDriverByName('MEM')
 
         # Deal with projections
         if self.projIn == None:
             self.projIn = self.__vlyr.GetSpatialRef().ExportToProj4()
 
-        srcproj = osr.SpatialReference()
-        srcproj.ImportFromProj4(self.projIn)
+        self.__srcproj = osr.SpatialReference()
+        self.__srcproj.ImportFromProj4(self.projIn)
 
         if self.projOut != None:
-            targproj = osr.SpatialReference()
-            targproj.ImportFromProj4(self.projOut)
-            self.__transform = osr.CoordinateTransformation(srcproj,targproj)
+            self.__targproj = osr.SpatialReference()
+            self.__targproj.ImportFromProj4(self.projOut)
+            self.__transform = osr.CoordinateTransformation(self.__srcproj,self.__targproj)
      
-    def bufferGeom(self):
+    def bufferGeom(self, feat):
         #Buffer well points, using buffDist input (in meters)
         geom = feat.GetGeometryRef()
         if self.projOut != None:
@@ -228,39 +225,42 @@ class ZoneClass(object):
         verts = buff.GetGeometryRef(0)
         verts = verts.GetPoints()
 
-    def getField(self):
+        return(buff, vec_area)
+
+    def getField(self, feat):
         if self.fldname is None:
             self.__fldid = feat.GetFID()
         else:
             self.__fldid = feat.GetField(self.fldname)
 
 
-    def computeMask(self):
-            if vec_area / ras_area >= self.fact:
-                self.__zooms = 1 #no resampling needed
+    def computeMask(self, vec_area, src_offset, buff):
+            if vec_area / self.__ras_area >= self.fact:
+                zooms = 1 #no resampling needed
             else:
-                self.__zooms = int(np.sqrt(ras_area / (vec_area / self.fact)))
+                zooms = int(np.sqrt(self.__ras_area / (vec_area / self.fact)))
 
             # src_array = rb.ReadAsArray(*src_offset)
-            src_array = rb.ReadAsArray(src_offset[0],src_offset[1],src_offset[2],src_offset[3])
+            src_array = self.__rb.ReadAsArray(src_offset[0],src_offset[1],src_offset[2],src_offset[3])
 
             #Calculate new geotransform of the feature subset
             if abs(self.__theta) > 0: # if raster is rotated
-                self.__new_gt = ((self.__gt[0] + (src_offset[0] * res)), # top left x coordinate
+                new_gt = ((self.__gt[0] + (src_offset[0] * res)), # top left x coordinate
                            res/ zooms,
                            0.,
                           (self.__gt[3] + (src_offset[1] * -res)), # top left y coordinate
                            0.,
                            -res/zooms)
             else:
-                self.__new_gt = ((self.__gt[0] + (src_offset[0] * self.__gt[1])),
+                new_gt = ((self.__gt[0] + (src_offset[0] * self.__gt[1])),
                            self.__gt[1]/zooms,
                            0.0,
                           (self.__gt[3] + (src_offset[1] * self.__gt[5])),
                            0.0,
                            self.__gt[5]/zooms)
             
-                            # Create a temporary vector layer in memory
+                # Create a temporary vector layer in memory
+                mem_drv = ogr.GetDriverByName('Memory')
                 mem_ds = mem_drv.CreateDataSource('out')
                 mem_layer = mem_ds.CreateLayer('poly', None, ogr.wkbPolygon)
                 mem_poly = ogr.Feature(mem_layer.GetLayerDefn())
@@ -277,6 +277,7 @@ class ZoneClass(object):
                 mem_layer.CreateFeature(mem_poly)
 
                 # Rasterize the polygon
+                driver = gdal.GetDriverByName('MEM')
                 rvds = driver.Create('', src_offset[2]*zooms, src_offset[3]*zooms, 1, gdal.GDT_Byte)
                 rvds.SetGeoTransform(new_gt)
                 gdal.RasterizeLayer(rvds, [1], mem_layer, None, None, [1], ['ALL_TOUCHED=True']) #burn_values=[1])
@@ -284,9 +285,11 @@ class ZoneClass(object):
 
                 # Resample the raster (only changes when zooms not 1)
                 src_re = zoom(src_array, zooms, order = 0)
+            return(src_re, rv_array)
 
-    def computeArrays(self):
+    def computeArrays(self, zooms):
         # Create a temporary vector layer in memory
+        mem_drv = ogr.GetDriverByName('Memory')
         mem_ds = mem_drv.CreateDataSource('out')
         mem_layer = mem_ds.CreateLayer('poly', None, ogr.wkbPolygon)
         mem_poly = ogr.Feature(mem_layer.GetLayerDefn())
@@ -338,7 +341,7 @@ class ZoneClass(object):
             self.cmap = {}
             cmapFlag = False
 
-        print('Raster NODATA Value: ', orig_nodata)
+        print('Raster NODATA Value: ', self.__orig_nodata)
         print('Category keys and values:', self.cmap)
 
         self.openVector()
@@ -353,7 +356,7 @@ class ZoneClass(object):
             sys.stdout.write('\r{} of {}, staid: {}'.format(i+1, lenid, fldid))
             sys.stdout.flush()
 
-            self.bufferGeom()
+            buff, vec_area = self.bufferGeom()
 
             src_offset = self.bbox_to_pixel_offsets(buff.GetEnvelope())
 
@@ -361,9 +364,9 @@ class ZoneClass(object):
                 #if point falls outside raster grid, include nodata as zone analysis
                 self.__masked = None
             else: 
-                self.computeMask()
+                self.computeMask(vec_area)
 
-                self.computeArrays()
+                # self.computeArrays() # was this duplicated?
 
                 # Mask the source data array with our current feature
                 # we take the logical_not to flip 0<->1 to get the correct mask effect
@@ -406,6 +409,8 @@ class ZoneClass(object):
         """
         Compute summary statistics of raster cells within vector zone
         """
+        # be sure to start with empty dict
+        self.__statDict = {}
 
         # Open raster
         self.openRaster() # check nodata value
@@ -417,12 +422,12 @@ class ZoneClass(object):
         statDict = {}
         lenid = len(self.__vlyr)
         for i, feat in enumerate(self.__vlyr):
-            getField()
-            sys.stdout.write('\r{} of {}, id: {}\n'.format(i+1, lenid, fldid))
+            self.getField(feat)
+            sys.stdout.write('\r{} of {}, id: {}\n'.format(i+1, lenid, self.__fldid))
             sys.stdout.flush()
 
             #Buffer well points, using buffDist input
-            self.bufferGeom()
+            buff, vec_area = self.bufferGeom(feat)
             
             src_offset = self.bbox_to_pixel_offsets(buff.GetEnvelope())
 
@@ -430,16 +435,15 @@ class ZoneClass(object):
                 #if point falls outside raster grid, include nodata as zone analysis
                 self.__masked = None
             else: 
-                self.computeMask()
-
-                self.computeArrays()
+                src_re, rv_array = self.computeMask(vec_area, src_offset, buff)
+                # self.computeArrays(zooms) # duplicated?
                 
                 # Mask the source data array with our current feature
                 # we take the logical_not to flip 0<->1 to get the correct mask effect
                 # we also mask out nodata values explictly
                 masked = np.ma.MaskedArray(src_re,
                     mask=np.logical_or(
-                        src_re == nodata_value,
+                        src_re == self.outND, # nodata_value,
                         np.logical_not(rv_array))) 
 
                 # Calculate the percent of No Data in masked array
@@ -447,8 +451,8 @@ class ZoneClass(object):
                 masked_nd = np.ma.MaskedArray(src_re, mask = np.logical_not(rv_array))
                 keys, counts = np.unique(masked_nd.compressed(), return_counts=True)
                 mDict = dict(zip(keys,counts))
-                if nodata_value in keys:
-                    nd = mDict[nodata_value] / (masked_nd.shape[0] * masked_nd.shape[1]) * 100
+                if self.outND in keys:
+                    nd = mDict[self.outND] / (masked_nd.shape[0] * masked_nd.shape[1]) * 100
 
 
                 feature_stats = {
@@ -475,11 +479,11 @@ class ZoneClass(object):
                     self.__statDict[fldid] = no_stats # if all NAN, return -9999
                 else:
                     if nd >= self.nd_thresh: # insufficient data, return -9999
-                        self.__statDict[fldid] = no_stats
+                        self.__statDict[self.__fldid] = no_stats
                     else: # sufficient data, return stats
-                        self.__statDict[fldid] = feature_stats
+                        self.__statDict[self.__fldid] = feature_stats
             else:
-                self.__statDict[fldid] = no_stats # if outside of raster extent, return -9999
+                self.__statDict[self.__fldid] = no_stats # if outside of raster extent, return -9999
 
         #clearing memory
             rvds = None
