@@ -206,6 +206,7 @@ def zonal_stats(gdb, ras, lyrName=None, fldname=None ,
 		sys.stdout.flush()
 
 		#Buffer well points, using buffDist input
+		geom = feat.GetGeometryRef()
 		if projOut != None:
 			geom.Transform(transform)
 		buff = geom.Buffer(buffDist) 
