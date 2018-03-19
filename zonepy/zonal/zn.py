@@ -61,7 +61,8 @@ class ZoneClass(object):
 
     def __init__(self, gdb='', ras='', lyrName=None, fldname=None, projIn=None,
                  projOut=None, buffDist=0, fact=30, outND=np.nan, 
-                 nd_thresh=100, filenm='outputfile', csvout=False, cmap=None):
+                 nd_thresh=100, filenm='outputfile', csvout=False, cmap=None,
+                 extractVal=None):
 
         self.gdb = gdb
         self.ras = ras
@@ -76,6 +77,7 @@ class ZoneClass(object):
         self.filenm = filenm
         self.csvout = csvout
         self.cmap = cmap
+        self.extractVal = extractVal
 
         self.__theta = 0
         # res: float, uhhhh Leslie??
@@ -190,9 +192,13 @@ class ZoneClass(object):
         #Get NoData value
         self.__orig_nodata = self.__rb.GetNoDataValue()
 
-    def openVector(self):
+    def openVector(self, extractVal=None):
         # Open feature class
-        self.__vds = ogr.Open(self.gdb, GA_ReadOnly)  
+        if extractVal == None:
+            self.__vds = ogr.Open(self.gdb, GA_ReadOnly)  
+        else:
+            self.__vds = ogr.Open(self.gdb, 1)  
+
         if self.lyrName != None:
             self.__vlyr = self.__vds.GetLayerByName(self.lyrName)
         else:
@@ -480,3 +486,60 @@ class ZoneClass(object):
         ##OUTPUT
 
         self.createOutput()
+
+    def extractByPoint(self, extractVal='extractVal'):
+        """
+        warning - does not work on rotated rasters
+
+        extractVal: string, default None, column name for new field if extractByPoint
+                  method is used
+        """
+        import struct
+
+        gdal.UseExceptions() #so it doesn't print to screen everytime point is outside grid
+        # Convert from map to pixel coordinates.
+        # Only works for geotransforms with no rotation.
+        # If raster is rotated, see http://code.google.com/p/metageta/source/browse/trunk/metageta/geometry.py#493
+
+        self.openRaster()
+
+        # Open feature class
+        self.openVector(extractVal=extractVal)
+
+        lyrDef = self.__vlyr.GetLayerDefn()
+        fieldExists = False
+        for i in range(lyrDef.GetFieldCount()):
+            if lyrDef.GetFieldDefn(i).GetName() == extractVal:
+                fieldExists = True
+                break
+        if not fieldExists:
+            fieldDef = ogr.FieldDefn(extractVal, ogr.OFTReal)
+            self.__vlyr.CreateField(fieldDef)
+
+        ptval = {}
+        for feat in self.__vlyr:   
+            fldid = feat.GetFID()
+            geom = feat.GetGeometryRef()
+            mx = geom.GetX()
+            my = geom.GetY()
+
+            px = int((mx - self.__gt[0]) / self.__gt[1]) #x pixel
+            py = int((my - self.__gt[3]) / self.__gt[5]) #y pixel
+            try: #in case raster isnt full extent
+                structval = self.__rb.ReadRaster(px,py,1,1,buf_type=gdal.GDT_Float32) #Assumes 32 bit int aka 'float'
+                intval = struct.unpack('f' , structval) #use the 'float' format code (8 bytes) not int (4 bytes)
+                val = intval[0]
+                if intval[0] < -9999:
+                    val = -9999
+            except:
+                val = self.outND
+
+            ptval[fldid] = val
+                # pass
+            feat.SetField(extractVal, val)
+            self.__vlyr.SetFeature(feat)
+
+        # src_ds = None
+        # self.__vlyr = None
+
+        self.__ptval = ptval
