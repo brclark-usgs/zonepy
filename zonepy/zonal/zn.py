@@ -355,22 +355,21 @@ class ZoneClass(object):
 
             if src_offset[2] <= 0 or src_offset[3] <=0:
                 #if point falls outside raster grid, include nodata as zone analysis
-                self.__masked = None
+                masked = None
             else: 
                 src_re, rv_array = self.computeMask(vec_area, src_offset, buff)
 
-                # self.computeArrays() # was this duplicated?
 
                 # Mask the source data array with our current feature
                 # we take the logical_not to flip 0<->1 to get the correct mask effect
-                self.__masked = np.ma.MaskedArray(src_re, mask = np.logical_not(rv_array))
+                masked = np.ma.MaskedArray(src_re, mask = np.logical_not(rv_array))
 
             #If mask is empty, use NoData column
-            if self.__masked is None:
+            if masked is None:
                 pixel_count = {}
                 pixel_count['NoData'] = 100
             else:
-                keys, counts = np.unique(self.__masked.compressed(), return_counts=True)
+                keys, counts = np.unique(masked.compressed(), return_counts=True)
                 if cmapFlag == False:
                     for k in keys:
                         self.cmap[k] = k
@@ -426,7 +425,7 @@ class ZoneClass(object):
             
             if src_offset[2] <= 0 or src_offset[3] <=0:
                 #if point falls outside raster grid, include nodata as zone analysis
-                self.__masked = None
+                masked = None
             else: 
                 src_re, rv_array = self.computeMask(vec_area, src_offset, buff)
                 # self.computeArrays(zooms) # duplicated?
@@ -436,7 +435,7 @@ class ZoneClass(object):
                 # we also mask out nodata values explictly
                 masked = np.ma.MaskedArray(src_re,
                     mask=np.logical_or(
-                        src_re == self.outND, # nodata_value,
+                        src_re == self.__orig_nodata, # nodata_value,
                         np.logical_not(rv_array))) 
 
                 # Calculate the percent of No Data in masked array
@@ -444,8 +443,8 @@ class ZoneClass(object):
                 masked_nd = np.ma.MaskedArray(src_re, mask = np.logical_not(rv_array))
                 keys, counts = np.unique(masked_nd.compressed(), return_counts=True)
                 mDict = dict(zip(keys,counts))
-                if self.outND in keys:
-                    nd = mDict[self.outND] / (masked_nd.shape[0] * masked_nd.shape[1]) * 100
+                if self.__orig_nodata in keys:
+                    nd = mDict[self.__orig_nodata] / (masked_nd.shape[0] * masked_nd.shape[1]) * 100
 
 
                 feature_stats = {
@@ -458,13 +457,13 @@ class ZoneClass(object):
                     'median': float(np.ma.median(np.ma.masked_invalid(masked)))}
 
             no_stats = {
-                'min': -9999.,
-                'mean': -9999.,
-                'max': -9999.,
-                'std': -9999.,
-                'sum': -9999.,
-                'count': -9999.,
-                'median': -9999.}
+                'min': self.outND,
+                'mean': self.outND,
+                'max': self.outND,
+                'std': self.outND,
+                'sum': self.outND,
+                'count': self.outND,
+                'median': self.outND}
 
             # print('no data percent: {}, no data threshold: {}\n'.format(nd,nd_thresh))
             if masked is not None:
