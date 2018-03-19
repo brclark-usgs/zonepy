@@ -262,7 +262,7 @@ class ZoneClass(object):
                 # Create a temporary vector layer in memory
                 mem_drv = ogr.GetDriverByName('Memory')
                 mem_ds = mem_drv.CreateDataSource('out')
-                mem_layer = mem_ds.CreateLayer('poly', None, ogr.wkbPolygon)
+                mem_layer = mem_ds.CreateLayer('poly', srs=self.__srcproj, geom_type=ogr.wkbPolygon)
                 mem_poly = ogr.Feature(mem_layer.GetLayerDefn())
                 if abs(self.__theta) > 0: # if raster is rotated
                     ring = ogr.Geometry(ogr.wkbLinearRing)
@@ -276,10 +276,13 @@ class ZoneClass(object):
                     mem_poly.SetGeometryDirectly(buff)
                 mem_layer.CreateFeature(mem_poly)
 
+
                 # Rasterize the polygon
                 driver = gdal.GetDriverByName('MEM')
                 rvds = driver.Create('', src_offset[2]*zooms, src_offset[3]*zooms, 1, gdal.GDT_Byte)
                 rvds.SetGeoTransform(new_gt)
+                rvds.SetProjection(self.__srcproj.ExportToWkt())
+
                 gdal.RasterizeLayer(rvds, [1], mem_layer, None, None, [1], ['ALL_TOUCHED=True']) #burn_values=[1])
                 rv_array = rvds.ReadAsArray()
 
@@ -287,23 +290,6 @@ class ZoneClass(object):
                 src_re = zoom(src_array, zooms, order = 0)
             return(src_re, rv_array)
 
-    def computeArrays(self, zooms):
-        # Create a temporary vector layer in memory
-        mem_drv = ogr.GetDriverByName('Memory')
-        mem_ds = mem_drv.CreateDataSource('out')
-        mem_layer = mem_ds.CreateLayer('poly', None, ogr.wkbPolygon)
-        mem_poly = ogr.Feature(mem_layer.GetLayerDefn())
-        mem_poly.SetGeometryDirectly(buff)
-        mem_layer.CreateFeature(mem_poly)
-        
-        # Rasterize the polygon
-        rvds = driver.Create('', src_offset[2]*zooms, src_offset[3]*zooms, 1, gdal.GDT_Byte)
-        rvds.SetGeoTransform(new_gt)
-        gdal.RasterizeLayer(rvds, [1], mem_layer, burn_values=[1])
-        rv_array = rvds.ReadAsArray()
-
-        # Resample the raster (only changes when zooms not 1)
-        src_re = zoom(src_array, zooms, order = 0)
 
     def createOutput(self):
         # Create dataframe from dictionary, transpose
@@ -323,7 +309,7 @@ class ZoneClass(object):
             cwd = os.getcwd()
             self.filenm = os.path.join(cwd, 'outputfile')
         if self.csvout == True:
-            print(self.filenm)
+            print('\n{}'.format(self.filenm))
             df.to_csv('{}.csv'.format(self.filenm), index=False)
         else:
             df.to_pickle('{}.pkl'.format(self.filenm))
@@ -333,6 +319,9 @@ class ZoneClass(object):
         """
         Compute percent categories of raster cells within vector zone
         """
+        # be sure to start with empty dict
+        self.__statDict = {}
+
         self.openRaster()
 
         # Create cmap if none provided
@@ -347,16 +336,13 @@ class ZoneClass(object):
         self.openVector()
 
         # Loop through vectors
-        stats = []
-        statDict = {}
-        lenid = len(vlyr)
-        for i, feat in enumerate(vlyr):
-            self.getField()
-
-            sys.stdout.write('\r{} of {}, staid: {}'.format(i+1, lenid, fldid))
+        lenid = len(self.__vlyr)
+        for i, feat in enumerate(self.__vlyr):
+            self.getField(feat)
+            sys.stdout.write('\r{} of {}, staid: {}'.format(i+1, lenid, self.__fldid))
             sys.stdout.flush()
 
-            buff, vec_area = self.bufferGeom()
+            buff, vec_area = self.bufferGeom(feat)
 
             src_offset = self.bbox_to_pixel_offsets(buff.GetEnvelope())
 
@@ -364,7 +350,7 @@ class ZoneClass(object):
                 #if point falls outside raster grid, include nodata as zone analysis
                 self.__masked = None
             else: 
-                self.computeMask(vec_area)
+                src_re, rv_array = self.computeMask(vec_area, src_offset, buff)
 
                 # self.computeArrays() # was this duplicated?
 
@@ -392,7 +378,7 @@ class ZoneClass(object):
                     pixel_count[k] = v / pixtot * 100
 
             # Create dictionary of station ids with pixel counts
-            statDict[fldid] = pixel_count
+            self.__statDict[self.__fldid] = pixel_count
 
         #clearing memory
             rvds = None
@@ -423,14 +409,14 @@ class ZoneClass(object):
         lenid = len(self.__vlyr)
         for i, feat in enumerate(self.__vlyr):
             self.getField(feat)
-            sys.stdout.write('\r{} of {}, id: {}\n'.format(i+1, lenid, self.__fldid))
+            sys.stdout.write('\r{} of {}, id: {}'.format(i+1, lenid, self.__fldid))
             sys.stdout.flush()
 
             #Buffer well points, using buffDist input
             buff, vec_area = self.bufferGeom(feat)
-            
-            src_offset = self.bbox_to_pixel_offsets(buff.GetEnvelope())
 
+            src_offset = self.bbox_to_pixel_offsets(buff.GetEnvelope())
+            
             if src_offset[2] <= 0 or src_offset[3] <=0:
                 #if point falls outside raster grid, include nodata as zone analysis
                 self.__masked = None
@@ -492,4 +478,5 @@ class ZoneClass(object):
         rds = None
 
         ##OUTPUT
+
         self.createOutput()
