@@ -292,6 +292,8 @@ class ZoneClass(object):
                 gdal.RasterizeLayer(rvds, [1], mem_layer, None, None, [1], ['ALL_TOUCHED=True']) #burn_values=[1])
                 rv_array = rvds.ReadAsArray()
 
+                rvds = None
+                mem_ds = None
                 # Resample the raster (only changes when zooms not 1)
                 src_re = zoom(src_array, zooms, order = 0)
             return(src_re, rv_array)
@@ -386,12 +388,9 @@ class ZoneClass(object):
             # Create dictionary of station ids with pixel counts
             self.__statDict[self.__fldid] = pixel_count
 
-        #clearing memory
-            rvds = None
-            mem_ds = None
      
-        vds = None
-        rds = None
+        self.__vds = None
+        self.__rds = None
 
         # Create dataframe from dictionary, transpose
         self.createOutput()
@@ -478,10 +477,8 @@ class ZoneClass(object):
                 self.__statDict[self.__fldid] = no_stats # if outside of raster extent, return -9999
 
         #clearing memory
-            rvds = None
-            mem_ds = None
-        vds = None
-        rds = None
+        self.__vds = None
+        self.__rds = None
 
         ##OUTPUT
 
@@ -545,6 +542,9 @@ class ZoneClass(object):
         # does this need some other export functionality?
         self.__ptval = ptval
 
+        self.__vds = None
+        self.__rds = None
+
     def RasCreate(self, stat='mean', outTiff='outras.tif',
                   inputfile=None):
         '''
@@ -594,6 +594,10 @@ class ZoneClass(object):
         # Write raster
         self.writeRaster(a, vext, sz, outTiff=outTiff)
 
+        # Clear memory
+        self.__vds = None
+
+
 
     def writeRaster(self, grid, ext, sz, outTiff='outras.tif'):
         '''
@@ -635,3 +639,5 @@ class ZoneClass(object):
 
         # Write array to raster
         band.WriteArray(grid)
+
+        ds = None
