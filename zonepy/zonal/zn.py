@@ -363,19 +363,19 @@ class ZoneClass(object):
 
                 # Mask the source data array with our current feature
                 # we take the logical_not to flip 0<->1 to get the correct mask effect
-                masked = np.ma.MaskedArray(src_re, mask = np.logical_not(rv_array))
+                self.__masked = np.ma.MaskedArray(src_re, mask = np.logical_not(rv_array))
 
             #If mask is empty, use NoData column
-            if masked is None:
+            if self.__masked is None:
                 pixel_count = {}
                 pixel_count['NoData'] = 100
             else:
-                keys, counts = np.unique(masked.compressed(), return_counts=True)
+                keys, counts = np.unique(self.__masked.compressed(), return_counts=True)
                 if cmapFlag == False:
                     for k in keys:
                         self.cmap[k] = k
                 else:
-                    self.cmap[orig_nodata] = 'NoData'
+                    self.cmap[self.__orig_nodata] = 'NoData'
 
                 # Create Dictionary of cmaps and counts
                 pixel_count = dict(zip([self.cmap[k] for k in keys],
