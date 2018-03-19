@@ -467,7 +467,7 @@ class ZoneClass(object):
             # print('no data percent: {}, no data threshold: {}\n'.format(nd,nd_thresh))
             if masked is not None:
                 if np.isnan(float(np.ma.masked_invalid(masked).mean())):
-                    self.__statDict[fldid] = no_stats # if all NAN, return -9999
+                    self.__statDict[self.__fldid] = no_stats # if all NAN, return -9999
                 else:
                     if nd >= self.nd_thresh: # insufficient data, return -9999
                         self.__statDict[self.__fldid] = no_stats
