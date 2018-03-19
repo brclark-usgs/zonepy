@@ -309,6 +309,7 @@ class ZoneClass(object):
         else:
             cols[0] = self.fldname
         df.columns = cols
+        self.__df = df
 
         ## OUTPUT options
         if self.filenm == 'outputfile':
@@ -542,4 +543,96 @@ class ZoneClass(object):
         # src_ds = None
         # self.__vlyr = None
 
+        # does this need some other export functionality?
         self.__ptval = ptval
+
+    def RasCreate(self, stat='mean', outTiff='outras.tif',
+                  inputfile=None):
+        '''
+        Define numpy array of raster shape and write raster
+
+        Parameters
+        ----------
+        stat: str, default = 'mean', Summary statistic to use for raster creation.
+                Options are 'min' (minimum), 'mean', 'max' (maximum), 'std' 
+                (standard deviation), 'sum', 'count', 'median'
+        outTiff: str, Filepath and name of created raster
+        inputfile: str, filename of pickle or csv from compute_stats. if None, it
+                 uses self.__statdict
+        '''
+
+        # Open feature class
+        self.openVector()
+
+        # Get extent of single polygon
+        feat = self.__vlyr.GetNextFeature()
+        featext = feat.GetGeometryRef().GetEnvelope()
+        # print(featext)
+        xsz = featext[1] - featext[0] #resolution in x
+        ysz = featext[3] - featext[2] #resolution in y
+        sz = (xsz, ysz)
+        # print(sz)
+
+        # Get projection and extent
+        vsr = self.__vlyr.GetSpatialRef()
+        # print(vsr)
+        vext = self.__vlyr.GetExtent()
+        cols = int(round(((vext[1] - vext[0]) / xsz),0))
+        rows = int(round(((vext[3] - vext[2]) / ysz),0))
+        # print(rows,cols)
+
+        if inputfile == None:
+            df = self.__df
+        elif inputfile.endswith('pkl'):
+            # Read pickle file of summary stats
+            df = pd.read_pickle(pklfile)
+
+        a = df[stat].values
+
+        # Reshape to zone shape
+        a = a.reshape((rows,cols))
+
+        # Write raster
+        self.writeRaster(a, vext, sz, outTiff=outTiff)
+
+
+    def writeRaster(self, grid, ext, sz, outTiff='outras.tif'):
+        '''
+        Create raster from numpy array and extent
+        
+        Parameters
+        ----------
+        grid: numpy array, numpy array of raster to be created with correct shape 
+                (rows and columns)
+        ext: tuple, tuple of floats for raster extent, ordered as
+                x minimum, x maximum, y minimum, y maximum
+        sz: tuple, tuple of floats for raster call resoluation, ordered
+                as x size, y size
+        outTiff: str, default 'outras.tif', Filepath of raster to be created.
+            Default creates file in working directory.
+        '''
+
+        print('writing tiff...')
+
+        # Calculate angle and coordinates
+        angle = 0
+        angle = angle * -1. * np.pi / 180.
+        geotransform = (ext[0], sz[0] * np.cos(angle), -sz[0] * np.sin(angle),
+                        ext[3], -sz[1] * np.sin(angle), -sz[1] * np.cos(angle)) 
+
+        # Create raster to hold data
+        nrow = grid.shape[0]
+        ncol = grid.shape[1]
+        drv = gdal.GetDriverByName('GTiff')
+        ds = drv.Create(outTiff, ncol, nrow, 1 ,gdal.GDT_Float32)
+
+        # Set raster no data value
+        band = ds.GetRasterBand(1)
+        band.SetNoDataValue(self.outND)
+
+        # Set coordinates and projection
+        ds.SetGeoTransform(geotransform)  
+        ds.SetProjection(self.__srcproj.ExportToWkt())
+
+        # Write array to raster
+        band.WriteArray(grid)
