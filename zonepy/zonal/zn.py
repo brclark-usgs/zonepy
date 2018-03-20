@@ -44,6 +44,7 @@ class ZoneClass(object):
             Used to resample the raster to a smaller cell size
             when vector area is much smaller than raster cell size
     outND: float, default numpy NAN (np.nan), no data value to use in output
+            when using compute_stats() method.
     nd_thresh: float, default 100, threshold percent of no data within vector 
             to return no data value (outND); for example, 60 means that 
             if there is greater than 60% no data within vector area, 
@@ -54,7 +55,8 @@ class ZoneClass(object):
     csvout: boolean, default False, False = pickled dataframe will be created 
             as output file, True = csv file will be created as output file
     cmap: dict, default None, Dictionary of raster values (keys, as int) and 
-            category names (values, as str), E.g. {1:'X', 2:'Y'}.
+            category names (values, as str), E.g. {1:'X', 2:'Y'} used in
+            compute_category() method.
             Default will create a dictionary using unique raster Values.
     """
 
@@ -299,11 +301,12 @@ class ZoneClass(object):
             return(src_re, rv_array)
 
 
-    def createOutput(self):
+    def createOutput(self, flag=''):
         # Create dataframe from dictionary, transpose
         df = pd.DataFrame(self.__statDict)
         df = df.T
-        df = df.replace(np.nan,0) # NAN values are true zeros
+        if flag == 'zonecat':
+            df = df.replace(np.nan,0) # NAN values are true zeros
         df = df.reset_index()
         cols = df.columns.tolist()
         if self.fldname is None:
@@ -393,7 +396,7 @@ class ZoneClass(object):
         self.__rds = None
 
         # Create dataframe from dictionary, transpose
-        self.createOutput()
+        self.createOutput('zonecat')
 
 
     def compute_stats(self):
@@ -467,14 +470,14 @@ class ZoneClass(object):
             # print('no data percent: {}, no data threshold: {}\n'.format(nd,nd_thresh))
             if masked is not None:
                 if np.isnan(float(np.ma.masked_invalid(masked).mean())):
-                    self.__statDict[self.__fldid] = no_stats # if all NAN, return -9999
+                    self.__statDict[self.__fldid] = no_stats # if all NAN, return nodata value
                 else:
-                    if nd >= self.nd_thresh: # insufficient data, return -9999
+                    if nd >= self.nd_thresh: # insufficient data, return nodata value
                         self.__statDict[self.__fldid] = no_stats
                     else: # sufficient data, return stats
                         self.__statDict[self.__fldid] = feature_stats
             else:
-                self.__statDict[self.__fldid] = no_stats # if outside of raster extent, return -9999
+                self.__statDict[self.__fldid] = no_stats # if outside of raster extent, return nodata value
 
         #clearing memory
         self.__vds = None
@@ -482,7 +485,7 @@ class ZoneClass(object):
 
         ##OUTPUT
 
-        self.createOutput()
+        self.createOutput('zonestat')
 
     def extractByPoint(self, extractVal='extractVal'):
         """
