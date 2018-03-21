@@ -6,7 +6,7 @@ sys.path.append('./')
 import zonepy as zp
 
 gdb = os.path.join('examples', 'zonepy_pts.gpkg')
-ras = os.path.join('examples','zonepy_test.tif')
+ras = os.path.join('examples','zone10kmCellNum.tif')
 lyrName = 'zonepy_pts'
 filenm = os.path.join('examples', 'outputfile')
 
