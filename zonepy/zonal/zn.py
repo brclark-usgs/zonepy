@@ -305,6 +305,7 @@ class ZoneClass(object):
         # Create dataframe from dictionary, transpose
         df = pd.DataFrame(self.__statDict)
         df = df.T
+        df = df.rename(columns={self.__orig_nodata:'NoData'})
         if flag == 'zonecat':
             df = df.replace(np.nan,0) # NAN values are true zeros
         df = df.reset_index()
@@ -325,6 +326,8 @@ class ZoneClass(object):
             df.to_csv('{}.csv'.format(self.filenm), index=False)
         else:
             df.to_pickle('{}.pkl'.format(self.filenm))
+
+        return
 
     def compute_category(self):
 
@@ -560,7 +563,7 @@ class ZoneClass(object):
                 (standard deviation), 'sum', 'count', 'median'
         outTiff: str, Filepath and name of created raster
         inputfile: str, filename of pickle or csv from compute_stats. if None, it
-                 uses self.__statdict
+                 uses self.__statDict
         '''
 
         # Open feature class
