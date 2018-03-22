@@ -206,6 +206,22 @@ class ZoneClass(object):
         else:
             self.__vlyr = self.__vds.GetLayer(0)
 
+        # get type of feature class
+        self.__geomType = self.__vlyr.GetGeomType()
+        # -2147483647 Point25D
+        # -2147483646 LineString25D
+        # -2147483645 Polygon25D
+        # -2147483644 MultiPoint25D
+        # -2147483643 MultiLineString25D
+        # -2147483642 MultiPolygon25D
+        #  0 Geometry
+        #  1 Point
+        #  2 Line
+        #  3 Polygon
+        #  4 MultiPoint
+        #  5 MultiLineString
+        #  6 MultiPolygon
+        # 100 No Geometry
 
         # Deal with projections
         if self.projIn == None:
@@ -218,6 +234,15 @@ class ZoneClass(object):
             self.__targproj = osr.SpatialReference()
             self.__targproj.ImportFromProj4(self.projOut)
             self.__transform = osr.CoordinateTransformation(self.__srcproj,self.__targproj)
+
+    def vectorTest(self):
+        # test if buffer is zero and geometry is point -
+        # advise user to implement extractByPoint
+        if self.__geomType == 1 and self.buffDist <= 0:
+            print('Cannot calculate value for point with zero buffer')
+            print('Consider using extractByPoint() method')
+            sys.exit()
+
      
     def bufferGeom(self, feat):
         #Buffer well points, using buffDist input (in meters)
@@ -354,6 +379,7 @@ class ZoneClass(object):
         print('Category keys and values:', self.cmap)
 
         self.openVector()
+        self.vectorTest()
 
         # Loop through vectors
         lenid = len(self.__vlyr)
@@ -419,6 +445,7 @@ class ZoneClass(object):
 
         # Open feature class
         self.openVector()
+        self.vectorTest()
 
         # Loop through vectors
         statDict = {}
