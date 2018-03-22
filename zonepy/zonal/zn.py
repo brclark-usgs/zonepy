@@ -9,7 +9,7 @@ licensed under BSD-3 and included in this repo.
 
 
 '''
-import os, sys, cmath
+import os, sys, cmath, copy
 from osgeo import gdal, ogr, osr
 from osgeo.gdalconst import *
 import numpy as np
@@ -227,7 +227,11 @@ class ZoneClass(object):
         if isinstance(self.buffDist, str):
             self.buffDist = feat.GetField(self.buffDist)
 
+        if self.buffDist == 0: 
+            self.buffDist = -0.0001
+
         buff = geom.Buffer(self.buffDist) 
+
         vec_area = buff.GetArea()
         # print('Ratio Buffer to Raster: ', vec_area/ras_area)
         verts = buff.GetGeometryRef(0)
@@ -298,6 +302,7 @@ class ZoneClass(object):
                 mem_ds = None
                 # Resample the raster (only changes when zooms not 1)
                 src_re = zoom(src_array, zooms, order = 0)
+                
             return(src_re, rv_array)
 
 
@@ -591,11 +596,14 @@ class ZoneClass(object):
         elif inputfile.endswith('pkl'):
             # Read pickle file of summary stats
             df = pd.read_pickle(pklfile)
+        elif inputfile.endswith('csv'):
+            df = pd.read_csv(inputfile)
 
         a = df[stat].values
 
         # Reshape to zone shape
         a = a.reshape((rows,cols))
+        a = np.flipud(a.T)
 
         # Write raster
         self.writeRaster(a, vext, sz, outTiff=outTiff)
