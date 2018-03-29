@@ -52,8 +52,9 @@ class ZoneClass(object):
     filenm: str, default 'outputfile', Filepath and name of output file 
             without an extension specified. Default will create a file in the 
             current working directory.
-    csvout: boolean, default False, False = pickled dataframe will be created 
-            as output file, True = csv file will be created as output file
+    output: str, default 'csv', 'csv' = csv file will be created as output 
+            'pkl' = pickled dataframe will be created as output
+           'gis' = values will be added to shapefile
     cmap: dict, default None, Dictionary of raster values (keys, as int) and 
             category names (values, as str), E.g. {1:'X', 2:'Y'} used in
             compute_category() method.
@@ -63,7 +64,7 @@ class ZoneClass(object):
 
     def __init__(self, gdb='', ras='', lyrName=None, fldname=None, projIn=None,
                  projOut=None, buffDist=0, fact=30, outND=np.nan, 
-                 nd_thresh=100, filenm='outputfile', csvout=False, cmap=None,
+                 nd_thresh=100, filenm='outputfile', output='csv', cmap=None,
                  extractVal=None):
 
         self.gdb = gdb
@@ -77,7 +78,7 @@ class ZoneClass(object):
         self.outND = outND
         self.nd_thresh = nd_thresh
         self.filenm = filenm
-        self.csvout = csvout
+        self.output = output
         self.cmap = cmap
         self.extractVal = extractVal
 
@@ -333,29 +334,35 @@ class ZoneClass(object):
 
     def createOutput(self, flag=''):
         # Create dataframe from dictionary, transpose
-        df = pd.DataFrame(self.__statDict)
-        df = df.T
-        df = df.rename(columns={self.__orig_nodata:'NoData'})
-        if flag == 'zonecat':
-            df = df.replace(np.nan,0) # NAN values are true zeros
-        df = df.reset_index()
-        cols = df.columns.tolist()
-        if self.fldname is None:
-            cols[0] = 'uniqueID'
+        if flag == 'zonepoint':
+            print('go to output method')
         else:
-            cols[0] = self.fldname
-        df.columns = cols
-        self.__df = df
+            df = pd.DataFrame(self.__statDict)
+            df = df.T
+            df = df.rename(columns={self.__orig_nodata:'NoData'})
+            if flag == 'zonecat':
+                df = df.replace(np.nan,0) # NAN values are true zeros
+            df = df.reset_index()
+            cols = df.columns.tolist()
+            if self.fldname is None:
+                cols[0] = 'uniqueID'
+            else:
+                cols[0] = self.fldname
+            df.columns = cols
+            self.__df = df
 
-        ## OUTPUT options
-        if self.filenm == 'outputfile':
-            cwd = os.getcwd()
-            self.filenm = os.path.join(cwd, 'outputfile')
-        if self.csvout == True:
-            print('\n{}'.format(self.filenm))
-            df.to_csv('{}.csv'.format(self.filenm), index=False)
-        else:
-            df.to_pickle('{}.pkl'.format(self.filenm))
+            ## OUTPUT options
+            if self.filenm == 'outputfile':
+                cwd = os.getcwd()
+                self.filenm = os.path.join(cwd, 'outputfile')
+            if self.output == 'csv':
+                print('\n{}'.format(self.filenm))
+                df.to_csv('{}.csv'.format(self.filenm), index=False)
+            elif self.output == 'pkl':
+                print('\n{}'.format(self.filenm))
+                df.to_pickle('{}.pkl'.format(self.filenm))
+            else:
+                print('this should not be option. how to stop')
 
         return
 
@@ -522,12 +529,13 @@ class ZoneClass(object):
 
         self.createOutput('zonestat')
 
-    def extractByPoint(self, extractVal='extractVal'):
+    def extractByPoint(self, extractVal='extractVal', output='csv'):
         """
         warning - does not work on rotated rasters
 
         extractVal: string, default None, column name for new field if extractByPoint
                   method is used
+        output: output type for point extraction, default is csv
         """
         import struct
 
@@ -570,18 +578,20 @@ class ZoneClass(object):
                 val = self.outND
 
             ptval[fldid] = val
-                # pass
+            
+
             feat.SetField(extractVal, val)
             self.__vlyr.SetFeature(feat)
 
-        # src_ds = None
-        # self.__vlyr = None
-
+        
         # does this need some other export functionality?
         self.__ptval = ptval
 
         self.__vds = None
         self.__rds = None
+
+        #Output
+        self.createOutput('zonepoint')
 
     def RasCreate(self, stat='mean', outTiff='outras.tif',
                   inputfile=None):
