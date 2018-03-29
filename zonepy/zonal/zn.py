@@ -339,6 +339,12 @@ class ZoneClass(object):
                 cwd = os.getcwd()
                 self.filenm = os.path.join(cwd, 'outputfile')
             #make new shpfile here
+            for k,v in self.__ptval.iteritems():
+                fid = k
+                val = v[0]
+                g = v[1]
+
+
         else:
             df = pd.DataFrame(self.__statDict)
             df = df.T
@@ -534,7 +540,7 @@ class ZoneClass(object):
 
         self.createOutput('zonestat')
 
-    def extractByPoint(self, extractVal='extractVal', output='csv'):
+    def extractByPoint(self, extractVal='extractVal'):
         """
         warning - does not work on rotated rasters
 
@@ -552,7 +558,8 @@ class ZoneClass(object):
         self.openRaster()
 
         # Open feature class
-        self.openVector(extractVal=extractVal)
+        # self.openVector(extractVal=extractVal)
+        self.openVector()
 
         lyrDef = self.__vlyr.GetLayerDefn()
         fieldExists = False
