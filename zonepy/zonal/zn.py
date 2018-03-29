@@ -335,7 +335,7 @@ class ZoneClass(object):
     def createOutput(self, flag=''):
         # Create dataframe from dictionary, transpose
         if flag == 'zonepoint':
-            print('go to output method')
+            #make new shpfile here
         else:
             df = pd.DataFrame(self.__statDict)
             df = df.T
@@ -577,14 +577,12 @@ class ZoneClass(object):
             except:
                 val = self.outND
 
-            ptval[fldid] = val
+            ptval[fldid] = (val, geom)
             
 
-            feat.SetField(extractVal, val)
-            self.__vlyr.SetFeature(feat)
+            # feat.SetField(extractVal, val)
+            # self.__vlyr.SetFeature(feat)
 
-        
-        # does this need some other export functionality?
         self.__ptval = ptval
 
         self.__vds = None
@@ -592,6 +590,7 @@ class ZoneClass(object):
 
         #Output
         self.createOutput('zonepoint')
+
 
     def RasCreate(self, stat='mean', outTiff='outras.tif',
                   inputfile=None):
