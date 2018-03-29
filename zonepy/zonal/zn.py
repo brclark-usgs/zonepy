@@ -54,7 +54,7 @@ class ZoneClass(object):
             current working directory.
     output: str, default 'csv', 'csv' = csv file will be created as output 
             'pkl' = pickled dataframe will be created as output
-           'gis' = values will be added to shapefile
+           'shp' = values will be added to new shapefile
     cmap: dict, default None, Dictionary of raster values (keys, as int) and 
             category names (values, as str), E.g. {1:'X', 2:'Y'} used in
             compute_category() method.
@@ -335,6 +335,9 @@ class ZoneClass(object):
     def createOutput(self, flag=''):
         # Create dataframe from dictionary, transpose
         if flag == 'zonepoint':
+            if self.filenm == 'outputfile':
+                cwd = os.getcwd()
+                self.filenm = os.path.join(cwd, 'outputfile')
             #make new shpfile here
         else:
             df = pd.DataFrame(self.__statDict)
@@ -361,8 +364,10 @@ class ZoneClass(object):
             elif self.output == 'pkl':
                 print('\n{}'.format(self.filenm))
                 df.to_pickle('{}.pkl'.format(self.filenm))
+            elif self.output == 'shp':
+                print('future add on coming soon')
             else:
-                print('this should not be option. how to stop')
+                print('output not valid: try csv, pkl, or shp')
 
         return
 
