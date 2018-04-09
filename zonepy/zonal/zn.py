@@ -333,17 +333,44 @@ class ZoneClass(object):
 
 
     def createOutput(self, flag=''):
+        if self.filenm == 'outputfile':
+            cwd = os.getcwd()
+            self.filenm = os.path.join(cwd, 'outputfile')
+
         # Create dataframe from dictionary, transpose
         if flag == 'zonepoint':
-            if self.filenm == 'outputfile':
-                cwd = os.getcwd()
-                self.filenm = os.path.join(cwd, 'outputfile')
+            shp = os.path.join('{}.shp'.format(self.filenm))
+            if self.fldname is None:
+                newfldid = 'uniqueID'
+            else:
+                newfldid = self.fldname
             #make new shpfile here
+            drv = ogr.GetDriverByName('ESRI Shapefile')
+            if os.path.exists(shp):
+                drv.DeleteDataSource(shp)
+            ds = drv.CreateDataSource(shp) 
+            lyr = ds.CreateLayer('lyr', geom_type=ogr.wkbPoint)
+            fieldDef = ogr.FieldDefn('value', ogr.OFTReal)
+            lyr.CreateField(fieldDef)
+            fieldDef = ogr.FieldDefn(newfldid, ogr.OFTString)
+            lyr.CreateField(fieldDef)
             for k,v in self.__ptval.iteritems():
                 fid = k
                 val = v[0]
-                g = v[1]
+                mx = v[1]
+                my = v[2]
+                print(fid, val)
+                pt = ogr.Geometry(ogr.wkbPoint)
+                pt.AddPoint(mx, my)
+                feat = ogr.Feature(lyr.GetLayerDefn())
+                feat.SetField('value', val)
+                feat.SetField(newfldid, fid)
+                feat.SetGeometry(pt)
+                lyr.CreateFeature(feat)
 
+            lyr = None
+            ds = None
+            drv = None
 
         else:
             df = pd.DataFrame(self.__statDict)
@@ -361,9 +388,6 @@ class ZoneClass(object):
             self.__df = df
 
             ## OUTPUT options
-            if self.filenm == 'outputfile':
-                cwd = os.getcwd()
-                self.filenm = os.path.join(cwd, 'outputfile')
             if self.output == 'csv':
                 print('\n{}'.format(self.filenm))
                 df.to_csv('{}.csv'.format(self.filenm), index=False)
@@ -572,8 +596,9 @@ class ZoneClass(object):
             self.__vlyr.CreateField(fieldDef)
 
         ptval = {}
-        for feat in self.__vlyr:   
-            fldid = feat.GetFID()
+        for feat in self.__vlyr: 
+            self.getField(feat)  
+            # fldid = feat.GetFID()
             geom = feat.GetGeometryRef()
             mx = geom.GetX()
             my = geom.GetY()
@@ -589,12 +614,12 @@ class ZoneClass(object):
             except:
                 val = self.outND
 
-            ptval[fldid] = (val, geom)
+            ptval[self.__fldid] = (val, mx, my)
             
 
             # feat.SetField(extractVal, val)
             # self.__vlyr.SetFeature(feat)
-
+        print(ptval)
         self.__ptval = ptval
 
         self.__vds = None
