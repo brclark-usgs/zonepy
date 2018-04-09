@@ -336,68 +336,73 @@ class ZoneClass(object):
         if self.filenm == 'outputfile':
             cwd = os.getcwd()
             self.filenm = os.path.join(cwd, 'outputfile')
-
         # Create dataframe from dictionary, transpose
+        df = pd.DataFrame(self.__statDict)
+        df = df.T
+        df = df.rename(columns={self.__orig_nodata:'NoData'})
+        if flag == 'zonecat':
+                df = df.replace(np.nan,0) # NAN values are true zeros
+        df = df.reset_index()
+        cols = df.columns.tolist()
+        if self.fldname is None:
+            cols[0] = 'uniqueID'
+        else:
+            cols[0] = self.fldname
         if flag == 'zonepoint':
+            cols[1] = 'value'
+            cols[2] = 'longitude'
+            cols[3] = 'latitude'
+        df.columns = cols
+        print(df)
+        
+        ## OUTPUT options
+        print('\n{}'.format(self.filenm))
+        if self.output == 'csv':
+            df.to_csv('{}.csv'.format(self.filenm), index=False)
+        elif self.output == 'pkl':
+            df.to_pickle('{}.pkl'.format(self.filenm))
+        elif self.output == 'shp':
             shp = os.path.join('{}.shp'.format(self.filenm))
-            if self.fldname is None:
-                newfldid = 'uniqueID'
-            else:
-                newfldid = self.fldname
+            # if self.fldname is None:
+            #     newfldid = 'uniqueID'
+            # else:
+            #     newfldid = self.fldname
             #make new shpfile here
             drv = ogr.GetDriverByName('ESRI Shapefile')
             if os.path.exists(shp):
                 drv.DeleteDataSource(shp)
             ds = drv.CreateDataSource(shp) 
             lyr = ds.CreateLayer('lyr', geom_type=ogr.wkbPoint)
-            fieldDef = ogr.FieldDefn('value', ogr.OFTReal)
-            lyr.CreateField(fieldDef)
-            fieldDef = ogr.FieldDefn(newfldid, ogr.OFTString)
-            lyr.CreateField(fieldDef)
-            for k,v in self.__ptval.iteritems():
-                fid = k
-                val = v[0]
-                mx = v[1]
-                my = v[2]
-                print(fid, val)
+            for c in cols:
+                # print(c)
+                if df[c].dtype == np.float64:
+                    ogrt = ogr.OFTReal
+                    # print('real')
+                elif df[c].dtype == np.int:
+                    ogrt = ogr.OFTInteger
+                    # print('int')
+                else:
+                    ogrt = ogr.OFTString
+                    # print('str')
+                fieldDef = ogr.FieldDefn(c, ogrt)
+                lyr.CreateField(fieldDef)
+
+            for row in df.itertuples():
+                print(row)
                 pt = ogr.Geometry(ogr.wkbPoint)
-                pt.AddPoint(mx, my)
+                pt.AddPoint(row[3], row[4])
                 feat = ogr.Feature(lyr.GetLayerDefn())
-                feat.SetField('value', val)
-                feat.SetField(newfldid, fid)
+                for i, v in enumerate(row[1:]):
+                    print(cols[i], v)
+                    feat.SetField(cols[i], v)
                 feat.SetGeometry(pt)
                 lyr.CreateFeature(feat)
 
             lyr = None
             ds = None
             drv = None
-
         else:
-            df = pd.DataFrame(self.__statDict)
-            df = df.T
-            df = df.rename(columns={self.__orig_nodata:'NoData'})
-            if flag == 'zonecat':
-                df = df.replace(np.nan,0) # NAN values are true zeros
-            df = df.reset_index()
-            cols = df.columns.tolist()
-            if self.fldname is None:
-                cols[0] = 'uniqueID'
-            else:
-                cols[0] = self.fldname
-            df.columns = cols
-            self.__df = df
-
-            ## OUTPUT options
-            if self.output == 'csv':
-                print('\n{}'.format(self.filenm))
-                df.to_csv('{}.csv'.format(self.filenm), index=False)
-            elif self.output == 'pkl':
-                print('\n{}'.format(self.filenm))
-                df.to_pickle('{}.pkl'.format(self.filenm))
-            elif self.output == 'shp':
-                print('future add on coming soon')
-            else:
-                print('output not valid: try csv, pkl, or shp')
+            print('output not valid: try csv, pkl, or shp')
 
         return
 
@@ -595,7 +600,7 @@ class ZoneClass(object):
             fieldDef = ogr.FieldDefn(extractVal, ogr.OFTReal)
             self.__vlyr.CreateField(fieldDef)
 
-        ptval = {}
+        self.__statDict = {}
         for feat in self.__vlyr: 
             self.getField(feat)  
             # fldid = feat.GetFID()
@@ -614,14 +619,8 @@ class ZoneClass(object):
             except:
                 val = self.outND
 
-            ptval[self.__fldid] = (val, mx, my)
+            self.__statDict[self.__fldid] = (val, mx, my)
             
-
-            # feat.SetField(extractVal, val)
-            # self.__vlyr.SetFeature(feat)
-        print(ptval)
-        self.__ptval = ptval
-
         self.__vds = None
         self.__rds = None
 
