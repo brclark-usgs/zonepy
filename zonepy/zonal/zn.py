@@ -235,9 +235,11 @@ class ZoneClass(object):
             self.__targproj = osr.SpatialReference()
             self.__targproj.ImportFromProj4(self.projOut)
             self.__transform = osr.CoordinateTransformation(self.__srcproj,self.__targproj)
+        # else:
+        #     self.projOut = self.projIn
 
     def vectorTest(self):
-        # test if buffer is zero and geometry is point -
+        # test if buffer is zero and geometry is point 
         # advise user to implement extractByPoint
         if self.__geomType == 1 and self.buffDist <= 0:
             print('Cannot calculate value for point with zero buffer')
@@ -369,7 +371,7 @@ class ZoneClass(object):
                 drv.DeleteDataSource(shp)
             ds = drv.CreateDataSource(shp) 
             lyr = ds.CreateLayer('lyr', geom_type=ogr.wkbPoint)
-            # lyr = ds.CreateLayer('lyr', geom_type=ogr.wkbPoint, srs='projgoeshere')
+            # lyr = ds.CreateLayer('lyr', geom_type=ogr.wkbPoint, srs=self.projOut)
             for c in cols:
                 # print(c)
                 if df[c].dtype == np.float64:
