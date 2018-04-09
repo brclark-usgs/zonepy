@@ -350,10 +350,10 @@ class ZoneClass(object):
             cols[0] = self.fldname
         if flag == 'zonepoint':
             cols[1] = 'value'
-            cols[2] = 'longitude'
-            cols[3] = 'latitude'
+            cols[2] = 'long'
+            cols[3] = 'lat'
         df.columns = cols
-        print(df)
+        # print(df)
         
         ## OUTPUT options
         print('\n{}'.format(self.filenm))
@@ -363,16 +363,13 @@ class ZoneClass(object):
             df.to_pickle('{}.pkl'.format(self.filenm))
         elif self.output == 'shp':
             shp = os.path.join('{}.shp'.format(self.filenm))
-            # if self.fldname is None:
-            #     newfldid = 'uniqueID'
-            # else:
-            #     newfldid = self.fldname
             #make new shpfile here
             drv = ogr.GetDriverByName('ESRI Shapefile')
             if os.path.exists(shp):
                 drv.DeleteDataSource(shp)
             ds = drv.CreateDataSource(shp) 
             lyr = ds.CreateLayer('lyr', geom_type=ogr.wkbPoint)
+            # lyr = ds.CreateLayer('lyr', geom_type=ogr.wkbPoint, srs='projgoeshere')
             for c in cols:
                 # print(c)
                 if df[c].dtype == np.float64:
@@ -388,12 +385,12 @@ class ZoneClass(object):
                 lyr.CreateField(fieldDef)
 
             for row in df.itertuples():
-                print(row)
+                # print(row)
                 pt = ogr.Geometry(ogr.wkbPoint)
-                pt.AddPoint(row[3], row[4])
+                pt.AddPoint(row.long, row.lat)
                 feat = ogr.Feature(lyr.GetLayerDefn())
                 for i, v in enumerate(row[1:]):
-                    print(cols[i], v)
+                    # print(cols[i], v)
                     feat.SetField(cols[i], v)
                 feat.SetGeometry(pt)
                 lyr.CreateFeature(feat)
@@ -436,6 +433,9 @@ class ZoneClass(object):
             sys.stdout.flush()
 
             buff, vec_area = self.bufferGeom(feat)
+            cengeom = buff.Centroid()
+            mx = cengeom.GetX()
+            my = cengeom.GetY()
 
             src_offset = self.bbox_to_pixel_offsets(buff.GetEnvelope())
 
@@ -468,6 +468,8 @@ class ZoneClass(object):
                 pixtot = float(sum(pixel_count.values()))
                 for k, v in pixel_count.items():
                     pixel_count[k] = v / pixtot * 100
+            pixel_count['long'] = mx
+            pixel_count['lat'] = my
 
             # Create dictionary of station ids with pixel counts
             self.__statDict[self.__fldid] = pixel_count
@@ -504,6 +506,9 @@ class ZoneClass(object):
 
             #Buffer well points, using buffDist input
             buff, vec_area = self.bufferGeom(feat)
+            cengeom = buff.Centroid()
+            mx = cengeom.GetX()
+            my = cengeom.GetY()
 
             src_offset = self.bbox_to_pixel_offsets(buff.GetEnvelope())
             
@@ -538,7 +543,10 @@ class ZoneClass(object):
                     'std': float(np.ma.masked_invalid(masked).std()),
                     'sum': float(np.ma.masked_invalid(masked).sum()),
                     'count': int(np.ma.masked_invalid(masked).count()),
-                    'median': float(np.ma.median(np.ma.masked_invalid(masked)))}
+                    'median': float(np.ma.median(np.ma.masked_invalid(masked))),
+                    'long': mx,
+                    'lat': my}
+
 
             no_stats = {
                 'min': self.outND,
@@ -547,7 +555,9 @@ class ZoneClass(object):
                 'std': self.outND,
                 'sum': self.outND,
                 'count': self.outND,
-                'median': self.outND}
+                'median': self.outND,
+                'long': mx,
+                'lat': my}
 
             # print('no data percent: {}, no data threshold: {}\n'.format(nd,nd_thresh))
             if masked is not None:
@@ -620,6 +630,7 @@ class ZoneClass(object):
                 val = self.outND
 
             self.__statDict[self.__fldid] = (val, mx, my)
+            # print(self.__statDict)
             
         self.__vds = None
         self.__rds = None
