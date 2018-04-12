@@ -33,10 +33,6 @@ class ZoneClass(object):
             shapefiles.
     fldname: str, default None, Unique identifier field of vector data. 
             Default will select first column in feature class
-    projIn: proj4 string, default None, Defines projection of vector data
-    projOut: proj4 string, default None, Used to transform the vector data
-             to match the projection of the raster for correct
-             intersection
     buffDist: int, default 0, Linear distance to buffer vector data, 
             in same units as projOut. Default will return the raster cell 
             value for point data.
@@ -71,8 +67,6 @@ class ZoneClass(object):
         self.ras = ras
         self.lyrName = lyrName
         self.fldname = fldname
-        self.projIn = projIn
-        self.projOut = projOut
         self.buffDist = buffDist
         self.fact = fact
         self.outND = outND
@@ -167,6 +161,13 @@ class ZoneClass(object):
         # Open raster
         self.__rds = gdal.Open(self.ras, GA_ReadOnly)
         assert(self.__rds)
+        #get projection info
+        self.__rproj4 = self.__rds.GetProjection()
+        if self.__rproj4 is None:
+            print('raster has no projection, need to define projection prior to running zonepy')
+        rsr = osr.SpatialReference()
+        rsr.ImportFromWkt(self.__rproj4)
+        self.__rproj4 = rsr.ExportToProj4()
         self.__rb = self.__rds.GetRasterBand(1)
         self.__gt = self.__rds.GetGeoTransform()
         self.__rsize = (self.__rds.RasterXSize, self.__rds.RasterYSize)
@@ -224,19 +225,23 @@ class ZoneClass(object):
         #  6 MultiPolygon
         # 100 No Geometry
 
-        # Deal with projections
-        if self.projIn == None:
-            self.projIn = self.__vlyr.GetSpatialRef().ExportToProj4()
-
+        # Deal with projections      
+        vrs = self.__vlyr.GetSpatialRef()
+        if vrs is None:
+            print('vector has no projection, need to define projection prior to running zonepy')
+            sys.exit()
+        self.__vproj4 = vrs.ExportToProj4()
         self.__srcproj = osr.SpatialReference()
-        self.__srcproj.ImportFromProj4(self.projIn)
+        self.__srcproj.ImportFromProj4(self.__vproj4)
 
-        if self.projOut != None:
+
+        if self.__rproj4 != self.__vproj4:
             self.__targproj = osr.SpatialReference()
-            self.__targproj.ImportFromProj4(self.projOut)
+            self.__targproj.ImportFromProj4(self.__rproj4)
             self.__transform = osr.CoordinateTransformation(self.__srcproj,self.__targproj)
-        # else:
-        #     self.projOut = self.projIn
+        else:
+            self.__targproj = self.__srcproj
+
 
     def vectorTest(self):
         # test if buffer is zero and geometry is point 
@@ -250,7 +255,7 @@ class ZoneClass(object):
     def bufferGeom(self, feat):
         #Buffer well points, using buffDist input (in meters)
         geom = feat.GetGeometryRef()
-        if self.projOut != None:
+        if self.__rproj4 != self.__vproj4:
             geom.Transform(self.__transform)
         if isinstance(self.buffDist, str):
             self.buffDist = feat.GetField(self.buffDist)
@@ -370,8 +375,9 @@ class ZoneClass(object):
             if os.path.exists(shp):
                 drv.DeleteDataSource(shp)
             ds = drv.CreateDataSource(shp) 
-            lyr = ds.CreateLayer('lyr', geom_type=ogr.wkbPoint)
-            # lyr = ds.CreateLayer('lyr', geom_type=ogr.wkbPoint, srs=self.projOut)
+            # lyr = ds.CreateLayer('lyr', geom_type=ogr.wkbPoint)
+            lyr = ds.CreateLayer('lyr', geom_type=ogr.wkbPoint, srs=self.__srcproj)
+            newtrns = osr.CoordinateTransformation(self.__targproj, self.__srcproj)
             for c in cols:
                 # print(c)
                 if df[c].dtype == np.float64:
@@ -390,12 +396,14 @@ class ZoneClass(object):
                 # print(row)
                 pt = ogr.Geometry(ogr.wkbPoint)
                 pt.AddPoint(row.long, row.lat)
+                pt.Transform(newtrns)
                 feat = ogr.Feature(lyr.GetLayerDefn())
                 for i, v in enumerate(row[1:]):
                     # print(cols[i], v)
                     feat.SetField(cols[i], v)
                 feat.SetGeometry(pt)
                 lyr.CreateFeature(feat)
+
 
             lyr = None
             ds = None
