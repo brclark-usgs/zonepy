@@ -13,4 +13,5 @@ __author__ = 'Brian Clark, Katherine Kneirim, and Leslie Duncan'
 
 # imports
 # from . import utils
-from . import zonal
+# from . import zonal
+from .zn import ZoneClass

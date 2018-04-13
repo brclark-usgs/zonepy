@@ -235,6 +235,10 @@ class ZoneClass(object):
         self.__srcproj.ImportFromProj4(self.__vproj4)
 
 
+    def vectorTest(self):
+
+        # if raster and vector projections differ,
+        # create transform object
         if self.__rproj4 != self.__vproj4:
             self.__targproj = osr.SpatialReference()
             self.__targproj.ImportFromProj4(self.__rproj4)
@@ -242,8 +246,6 @@ class ZoneClass(object):
         else:
             self.__targproj = self.__srcproj
 
-
-    def vectorTest(self):
         # test if buffer is zero and geometry is point 
         # advise user to implement extractByPoint
         if self.__geomType == 1 and self.buffDist <= 0:
@@ -360,6 +362,7 @@ class ZoneClass(object):
             cols[2] = 'long'
             cols[3] = 'lat'
         df.columns = cols
+        self.df = df
         # print(df)
         
         ## OUTPUT options

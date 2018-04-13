@@ -11,8 +11,8 @@ lyrName = 'modelgrid'
 inputfile = os.path.join('examples', 'outputfilepoly.csv')
 outTiff = os.path.join('examples', 'statRaster.tif')
 
-zs = zp.zonal.ZoneClass(gdb, ras, lyrName=lyrName, fldname=None , 
-                 projIn=None, projOut=None, buffDist=0, fact=1, 
-                 outND=np.nan, nd_thresh=100, filenm=None, csvout=True)
+zs = zp.ZoneClass(gdb, ras, lyrName=lyrName, fldname=None , 
+                 buffDist=0, fact=1, 
+                 outND=np.nan, nd_thresh=100, filenm=None, output='csv')
 
 zs.RasCreate(outTiff=outTiff, inputfile=inputfile)
