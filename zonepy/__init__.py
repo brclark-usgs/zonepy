@@ -12,6 +12,4 @@ __name__ = 'zonepy'
 __author__ = 'Brian Clark, Katherine Kneirim, and Leslie Duncan'
 
 # imports
-# from . import utils
-# from . import zonal
 from .zn import ZoneClass

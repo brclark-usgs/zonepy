@@ -5,11 +5,11 @@ import numpy as np
 sys.path.append('./')
 import zonepy as zp
 
-gdb = os.path.join('examples', 'zone10km.gpkg')
-ras = os.path.join('examples','zone10kmCellNum.tif')
+gdb = os.path.join('examples', 'data', 'zone10km.gpkg')
+ras = os.path.join('examples', 'data', 'zone10kmCellNum.tif')
 lyrName = 'modelgrid' 
-inputfile = os.path.join('examples', 'outputfilepoly.csv')
-outTiff = os.path.join('examples', 'statRaster.tif')
+inputfile = os.path.join('examples', 'data', 'outputfilepoly.csv')
+outTiff = os.path.join('examples', 'data', 'statRaster.tif')
 
 zs = zp.ZoneClass(gdb, ras, lyrName=lyrName, fldname=None , 
                  buffDist=0, fact=1, 

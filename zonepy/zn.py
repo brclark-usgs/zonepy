@@ -235,7 +235,7 @@ class ZoneClass(object):
         self.__srcproj.ImportFromProj4(self.__vproj4)
 
 
-    def vectorTest(self):
+    def checkProj(self):
 
         # if raster and vector projections differ,
         # create transform object
@@ -246,14 +246,15 @@ class ZoneClass(object):
         else:
             self.__targproj = self.__srcproj
 
+    def vectorTest(self):
         # test if buffer is zero and geometry is point 
         # advise user to implement extractByPoint
+        
         if self.__geomType == 1 and self.buffDist <= 0:
             print('Cannot calculate value for point with zero buffer')
             print('Consider using extractByPoint() method')
             sys.exit()
 
-     
     def bufferGeom(self, feat):
         #Buffer well points, using buffDist input (in meters)
         geom = feat.GetGeometryRef()
@@ -262,15 +263,18 @@ class ZoneClass(object):
         if isinstance(self.buffDist, str):
             self.buffDist = feat.GetField(self.buffDist)
 
-        if self.buffDist == 0: 
+        if self.buffDist == 0 and self.__geomType == 1: 
+            return(geom, 0.)
+        elif self.buffDist == 0 and self.__geomType != 1:
             self.buffDist = -0.0001
+            # return(geom, geom.GetArea())
 
         buff = geom.Buffer(self.buffDist) 
 
         vec_area = buff.GetArea()
         # print('Ratio Buffer to Raster: ', vec_area/ras_area)
-        verts = buff.GetGeometryRef(0)
-        verts = verts.GetPoints()
+        # verts = buff.GetGeometryRef(0)
+        # verts = verts.GetPoints()
 
         return(buff, vec_area)
 
@@ -437,6 +441,7 @@ class ZoneClass(object):
 
         self.openVector()
         self.vectorTest()
+        self.checkProj()
 
         # Loop through vectors
         lenid = len(self.__vlyr)
@@ -508,6 +513,7 @@ class ZoneClass(object):
         # Open feature class
         self.openVector()
         self.vectorTest()
+        self.checkProj()
 
         # Loop through vectors
         statDict = {}
@@ -612,6 +618,7 @@ class ZoneClass(object):
         # Open feature class
         # self.openVector(extractVal=extractVal)
         self.openVector()
+        self.checkProj()
 
         lyrDef = self.__vlyr.GetLayerDefn()
         fieldExists = False
@@ -626,10 +633,10 @@ class ZoneClass(object):
         self.__statDict = {}
         for feat in self.__vlyr: 
             self.getField(feat)  
-            # fldid = feat.GetFID()
-            geom = feat.GetGeometryRef()
-            mx = geom.GetX()
-            my = geom.GetY()
+
+            buff, vec_area = self.bufferGeom(feat)
+            mx = buff.GetX()
+            my = buff.GetY()
 
             px = int((mx - self.__gt[0]) / self.__gt[1]) #x pixel
             py = int((my - self.__gt[3]) / self.__gt[5]) #y pixel
@@ -643,7 +650,6 @@ class ZoneClass(object):
                 val = self.outND
 
             self.__statDict[self.__fldid] = (val, mx, my)
-            # print(self.__statDict)
             
         self.__vds = None
         self.__rds = None
