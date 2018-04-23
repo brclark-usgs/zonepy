@@ -16,3 +16,6 @@ zc = zp.ZoneClass(gdb, ras, lyrName=lyrName, fldname=None ,
 
 zc.compute_category()
 
+zc.writeSHP()
+zc.writeCSV()
+zc.writePKL()

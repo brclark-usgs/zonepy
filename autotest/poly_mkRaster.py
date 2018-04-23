@@ -15,4 +15,4 @@ zs = zp.ZoneClass(gdb, ras, lyrName=lyrName, fldname=None ,
                  buffDist=0, fact=1, 
                  outND=np.nan, nd_thresh=100, filenm=None, output='csv')
 
-zs.RasCreate(outTiff=outTiff, inputfile=inputfile)
+zs.writeRaster(outTiff=outTiff, inputfile=inputfile)

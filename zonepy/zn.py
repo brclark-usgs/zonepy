@@ -249,7 +249,7 @@ class ZoneClass(object):
     def vectorTest(self):
         # test if buffer is zero and geometry is point 
         # advise user to implement extractByPoint
-        
+
         if self.__geomType == 1 and self.buffDist <= 0:
             print('Cannot calculate value for point with zero buffer')
             print('Consider using extractByPoint() method')
@@ -345,7 +345,8 @@ class ZoneClass(object):
             return(src_re, rv_array)
 
 
-    def createOutput(self, flag=''):
+    def createDF(self, flag=''):
+
         if self.filenm == 'outputfile':
             cwd = os.getcwd()
             self.filenm = os.path.join(cwd, 'outputfile')
@@ -365,58 +366,12 @@ class ZoneClass(object):
             cols[1] = 'value'
             cols[2] = 'long'
             cols[3] = 'lat'
+        cols = [str(x) for x in cols]
         df.columns = cols
         self.df = df
-        # print(df)
         
         ## OUTPUT options
         print('\n{}'.format(self.filenm))
-        if self.output == 'csv':
-            df.to_csv('{}.csv'.format(self.filenm), index=False)
-        elif self.output == 'pkl':
-            df.to_pickle('{}.pkl'.format(self.filenm))
-        elif self.output == 'shp':
-            shp = os.path.join('{}.shp'.format(self.filenm))
-            #make new shpfile here
-            drv = ogr.GetDriverByName('ESRI Shapefile')
-            if os.path.exists(shp):
-                drv.DeleteDataSource(shp)
-            ds = drv.CreateDataSource(shp) 
-            # lyr = ds.CreateLayer('lyr', geom_type=ogr.wkbPoint)
-            lyr = ds.CreateLayer('lyr', geom_type=ogr.wkbPoint, srs=self.__srcproj)
-            newtrns = osr.CoordinateTransformation(self.__targproj, self.__srcproj)
-            for c in cols:
-                # print(c)
-                if df[c].dtype == np.float64:
-                    ogrt = ogr.OFTReal
-                    # print('real')
-                elif df[c].dtype == np.int:
-                    ogrt = ogr.OFTInteger
-                    # print('int')
-                else:
-                    ogrt = ogr.OFTString
-                    # print('str')
-                fieldDef = ogr.FieldDefn(c, ogrt)
-                lyr.CreateField(fieldDef)
-
-            for row in df.itertuples():
-                # print(row)
-                pt = ogr.Geometry(ogr.wkbPoint)
-                pt.AddPoint(row.long, row.lat)
-                pt.Transform(newtrns)
-                feat = ogr.Feature(lyr.GetLayerDefn())
-                for i, v in enumerate(row[1:]):
-                    # print(cols[i], v)
-                    feat.SetField(cols[i], v)
-                feat.SetGeometry(pt)
-                lyr.CreateFeature(feat)
-
-
-            lyr = None
-            ds = None
-            drv = None
-        else:
-            print('output not valid: try csv, pkl, or shp')
 
         return
 
@@ -497,7 +452,7 @@ class ZoneClass(object):
         self.__rds = None
 
         # Create dataframe from dictionary, transpose
-        self.createOutput('zonecat')
+        self.createDF('zonecat')
 
 
     def compute_stats(self):
@@ -596,7 +551,7 @@ class ZoneClass(object):
 
         ##OUTPUT
 
-        self.createOutput('zonestat')
+        self.createDF('zonestat')
 
     def extractByPoint(self, extractVal='extractVal'):
         """
@@ -655,10 +610,10 @@ class ZoneClass(object):
         self.__rds = None
 
         #Output
-        self.createOutput('zonepoint')
+        self.createDF('zonepoint')
 
 
-    def RasCreate(self, stat='mean', outTiff='outras.tif',
+    def writeRaster(self, stat='mean', outTiff='outras.tif',
                   inputfile=None):
         '''
         Define numpy array of raster shape and write raster
@@ -694,7 +649,7 @@ class ZoneClass(object):
         # print(rows,cols)
 
         if inputfile == None:
-            df = self.__df
+            df = self.df
         elif inputfile.endswith('pkl'):
             # Read pickle file of summary stats
             df = pd.read_pickle(pklfile)
@@ -708,14 +663,14 @@ class ZoneClass(object):
         a = np.flipud(a.T)
 
         # Write raster
-        self.writeRaster(a, vext, sz, outTiff=outTiff)
+        self.array2Raster(a, vext, sz, outTiff=outTiff)
 
         # Clear memory
         self.__vds = None
 
 
 
-    def writeRaster(self, grid, ext, sz, outTiff='outras.tif'):
+    def array2Raster(self, grid, ext, sz, outTiff='outras.tif'):
         '''
         Create raster from numpy array and extent
         
@@ -757,3 +712,54 @@ class ZoneClass(object):
         band.WriteArray(grid)
 
         ds = None
+
+    def writeCSV(self):
+
+        self.df.to_csv('{}.csv'.format(self.filenm), index=False)
+
+    def writePKL(self):
+
+        self.df.to_pickle('{}.pkl'.format(self.filenm))
+
+    def writeSHP(self):
+        shp = os.path.join('{}.shp'.format(self.filenm))
+        #make new shpfile here
+        drv = ogr.GetDriverByName('ESRI Shapefile')
+        if os.path.exists(shp):
+            drv.DeleteDataSource(shp)
+        ds = drv.CreateDataSource(shp) 
+        # lyr = ds.CreateLayer('lyr', geom_type=ogr.wkbPoint)
+        lyr = ds.CreateLayer('lyr', geom_type=ogr.wkbPoint, srs=self.__srcproj)
+        newtrns = osr.CoordinateTransformation(self.__targproj, self.__srcproj)
+        cols = self.df.columns.tolist()
+        cols = [str(x) for x in cols]
+
+        for c in cols:
+            # print(c)
+            if self.df[c].dtype == np.float64:
+                ogrt = ogr.OFTReal
+                # print('real')
+            elif self.df[c].dtype == np.int:
+                ogrt = ogr.OFTInteger
+                # print('int')
+            else:
+                ogrt = ogr.OFTString
+                # print('str')
+            fieldDef = ogr.FieldDefn(str(c), ogrt)
+            lyr.CreateField(fieldDef)
+
+        for row in self.df.itertuples():
+            # print(row)
+            pt = ogr.Geometry(ogr.wkbPoint)
+            pt.AddPoint(row.long, row.lat)
+            pt.Transform(newtrns)
+            feat = ogr.Feature(lyr.GetLayerDefn())
+            for i, v in enumerate(row[1:]):
+                # print(cols[i], v)
+                feat.SetField(cols[i], v)
+            feat.SetGeometry(pt)
+            lyr.CreateFeature(feat)
+
+        lyr = None
+        ds = None
+        drv = None

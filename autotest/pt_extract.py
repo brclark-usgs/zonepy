@@ -15,3 +15,6 @@ zs = zp.ZoneClass(gdb, ras, lyrName=lyrName, fldname=None ,
                  outND=np.nan, nd_thresh=100, filenm=filenm, output='csv')
 
 zs.extractByPoint()
+zs.writeSHP()
+zs.writeCSV()
+zs.writePKL()
