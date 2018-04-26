@@ -12,7 +12,7 @@ filenm = os.path.join('examples', 'data', 'outputfile')
 
 zs = zp.ZoneClass(gdb, ras, lyrName=lyrName, fldname=None , 
                  buffDist=0, fact=30, 
-                 outND=np.nan, nd_thresh=100, filenm=filenm, output='csv')
+                 outND=np.nan, nd_thresh=100, filenm=filenm)
 
 zs.extractByPoint()
 zs.writeSHP()

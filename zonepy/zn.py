@@ -48,9 +48,6 @@ class ZoneClass(object):
     filenm: str, default 'outputfile', Filepath and name of output file 
             without an extension specified. Default will create a file in the 
             current working directory.
-    output: str, default 'csv', 'csv' = csv file will be created as output 
-            'pkl' = pickled dataframe will be created as output
-           'shp' = values will be added to new shapefile
     cmap: dict, default None, Dictionary of raster values (keys, as int) and 
             category names (values, as str), E.g. {1:'X', 2:'Y'} used in
             compute_category() method.
@@ -60,7 +57,7 @@ class ZoneClass(object):
 
     def __init__(self, gdb='', ras='', lyrName=None, fldname=None, projIn=None,
                  projOut=None, buffDist=0, fact=30, outND=np.nan, 
-                 nd_thresh=100, filenm='outputfile', output='csv', cmap=None,
+                 nd_thresh=100, filenm='outputfile', cmap=None,
                  extractVal=None):
 
         self.gdb = gdb
@@ -72,7 +69,6 @@ class ZoneClass(object):
         self.outND = outND
         self.nd_thresh = nd_thresh
         self.filenm = filenm
-        self.output = output
         self.cmap = cmap
         self.extractVal = extractVal
 
@@ -729,6 +725,18 @@ class ZoneClass(object):
             drv.DeleteDataSource(shp)
         ds = drv.CreateDataSource(shp) 
         # lyr = ds.CreateLayer('lyr', geom_type=ogr.wkbPoint)
+        self.df2features(ds)
+
+    def writeGPKG(self):
+        shp = os.path.join('{}.gpkg'.format(self.filenm))
+        #make new shpfile here
+        drv = ogr.GetDriverByName('GPKG')
+        # if os.path.exists(shp):
+            # drv.DeleteDataSource(shp)
+        ds = drv.CreateDataSource(shp) 
+        self.df2features(ds)
+
+    def df2features(self, ds=''):
         lyr = ds.CreateLayer('lyr', geom_type=ogr.wkbPoint, srs=self.__srcproj)
         newtrns = osr.CoordinateTransformation(self.__targproj, self.__srcproj)
         cols = self.df.columns.tolist()
@@ -740,8 +748,8 @@ class ZoneClass(object):
                 ogrt = ogr.OFTReal
                 # print('real')
             elif self.df[c].dtype == np.int:
-                ogrt = ogr.OFTInteger
-                # print('int')
+                ogrt = ogr.OFTInteger64
+                self.df[c] = self.df.astype({c:np.int64})
             else:
                 ogrt = ogr.OFTString
                 # print('str')
@@ -755,7 +763,6 @@ class ZoneClass(object):
             pt.Transform(newtrns)
             feat = ogr.Feature(lyr.GetLayerDefn())
             for i, v in enumerate(row[1:]):
-                # print(cols[i], v)
                 feat.SetField(cols[i], v)
             feat.SetGeometry(pt)
             lyr.CreateFeature(feat)

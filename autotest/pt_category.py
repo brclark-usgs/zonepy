@@ -12,7 +12,7 @@ filenm = os.path.join('examples', 'data', 'outputfile')
 
 zc = zp.ZoneClass(gdb, ras, lyrName=lyrName, fldname=None , 
                   buffDist=100, cmap=None, fact=30, 
-                  filenm=filenm, output='csv')
+                  filenm=filenm)
 
 zc.compute_category()
 

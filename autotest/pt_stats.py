@@ -12,7 +12,7 @@ filenm = os.path.join('examples', 'data', 'outputfilepoly')
 
 zs = zp.ZoneClass(gdb, ras, lyrName=lyrName, fldname=None , 
                  buffDist=100, fact=30, 
-                 outND=np.nan, nd_thresh=100, filenm=filenm, output='csv')
+                 outND=np.nan, nd_thresh=100, filenm=filenm)
 
 zs.compute_stats()
 zs.writeSHP()

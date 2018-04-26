@@ -13,6 +13,6 @@ outTiff = os.path.join('examples', 'data', 'statRaster.tif')
 
 zs = zp.ZoneClass(gdb, ras, lyrName=lyrName, fldname=None , 
                  buffDist=0, fact=1, 
-                 outND=np.nan, nd_thresh=100, filenm=None, output='csv')
+                 outND=np.nan, nd_thresh=100, filenm=None)
 
 zs.writeRaster(outTiff=outTiff, inputfile=inputfile)
