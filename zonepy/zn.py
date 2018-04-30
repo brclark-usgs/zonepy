@@ -656,7 +656,6 @@ class ZoneClass(object):
 
         # Reshape to zone shape
         a = a.reshape((rows,cols))
-        a = np.flipud(a.T)
 
         # Write raster
         self.array2Raster(a, vext, sz, outTiff=outTiff)
