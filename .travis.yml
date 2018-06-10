@@ -38,6 +38,7 @@ install:
   - conda info -a
 
   - conda create -q -n py36 python=$TRAVIS_PYTHON_VERSION numpy pandas scipy gdal
+  - conda install -c conda-forge coveralls
   - source activate py36
 
 
@@ -55,4 +56,4 @@ script:
     - python autotest/pt_extract.py
     - python autotest/poly_mkRaster.py
 # after_success:
-    # - coveralls
+    - coveralls
