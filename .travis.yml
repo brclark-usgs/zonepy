@@ -50,10 +50,8 @@ script:
     - python -c "import os; is_travis = 'TRAVIS' in os.environ; print('TRAVIS {}'.format(is_travis))"
     - echo numpy version; python -c "import numpy; print(numpy.version.version)"
     - echo gdal version; python -c "from osgeo import gdal; print(gdal.__version__)"
-    - python autotest/pt_stats.py
-    - python autotest/poly_stats.py
-    - python autotest/pt_category.py
-    - python autotest/pt_extract.py
-    - python autotest/poly_mkRaster.py
+    - python autotest/autotest_scripts.py
+    - coverage report -m
+
 # after_success:
-    - coveralls
+    # - coveralls
