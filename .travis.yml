@@ -50,5 +50,9 @@ script:
     - echo numpy version; python -c "import numpy; print(numpy.version.version)"
     - echo gdal version; python -c "from osgeo import gdal; print(gdal.__version__)"
     - python autotest/pt_stats.py
+    - python autotest/poly_stats.py
+    - python autotest/pt_category.py
+    - python autotest/pt_extract.py
+    - python autotest/poly_mkRaster.py
 # after_success:
     # - coveralls
