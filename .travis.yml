@@ -50,7 +50,7 @@ script:
     - python -c "import os; is_travis = 'TRAVIS' in os.environ; print('TRAVIS {}'.format(is_travis))"
     - echo numpy version; python -c "import numpy; print(numpy.version.version)"
     - echo gdal version; python -c "from osgeo import gdal; print(gdal.__version__)"
-    - coverage run python autotest/autotest_scripts.py
+    - coverage run autotest/autotest_scripts.py
     - coverage report -m
 
 # after_success:
