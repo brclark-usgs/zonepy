@@ -1,4 +1,4 @@
-language: python
+# language: python
 os: linux
 dist: trusty
 sudo: required
@@ -8,7 +8,7 @@ matrix:
     # - python: 2.7
     # - python: 3.4
     # - python: 3.5
-    - python: 3.6
+    # - python: 3.6
     # - python: "3.6-dev"
     # - python: "nightly"
 
@@ -39,7 +39,7 @@ install:
 
   - conda create -q -n py36 python=$TRAVIS_PYTHON_VERSION numpy pandas scipy gdal
   - source activate py36
-  - conda install -c conda-forge coveralls
+  # - conda install -c conda-forge coveralls
 
 
 
@@ -50,8 +50,8 @@ script:
     - python -c "import os; is_travis = 'TRAVIS' in os.environ; print('TRAVIS {}'.format(is_travis))"
     - echo numpy version; python -c "import numpy; print(numpy.version.version)"
     - echo gdal version; python -c "from osgeo import gdal; print(gdal.__version__)"
-    - coverage run autotest/autotest_scripts.py
-    - coverage report -m
+    - python autotest/autotest_scripts.py
+    # - coverage report -m
 
 # after_success:
     # - coveralls
