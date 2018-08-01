@@ -3,8 +3,8 @@ from __future__ import print_function
 '''
 Zonal Analysis
 
-Developed by Brian Clark, Katherine Knierim, and Leslie Duncan. Portions of 
-this code were modified from Copyright 2013 Matthew Perry, which were 
+Developed by Brian Clark, Katherine Knierim, and Leslie Duncan. Portions of
+this code were modified from Copyright 2013 Matthew Perry, which were
 licensed under BSD-3 and included in this repo.
 
 
@@ -15,40 +15,41 @@ from osgeo.gdalconst import *
 import numpy as np
 import pandas as pd
 from scipy.ndimage import zoom
+# from collections import Counter
 from math import radians, degrees, atan
 import warnings
 # gdal.PushErrorHandler('CPLQuietErrorHandler')
- 
+
 class ZoneClass(object):
     """
     Parameters
     ----------
-    gdb: str, Filepath of vector to use for zonal analysis; 
-            shapefile or geodatabase containing feature class, either points 
-            or polygons 
+    gdb: str, Filepath of vector to use for zonal analysis;
+            shapefile or geodatabase containing feature class, either points
+            or polygons
     ras: str, Filepath of raster to use for zonal analysis;
         geotif format
-    lyrName: str, default None, Name of feature class of points. Default 
-            will select first layer in geodatabase. Also use default for 
+    lyrName: str, default None, Name of feature class of points. Default
+            will select first layer in geodatabase. Also use default for
             shapefiles.
-    fldname: str, default None, Unique identifier field of vector data. 
+    fldname: str, default None, Unique identifier field of vector data.
             Default will select first column in feature class
-    buffDist: int, default 0, Linear distance to buffer vector data, 
-            in same units as projOut. Default will return the raster cell 
+    buffDist: int, default 0, Linear distance to buffer vector data,
+            in same units as projOut. Default will return the raster cell
             value for point data.
-    fact: int, default 30, Ratio of vector area to raster cell size area. 
+    fact: int, default 30, Ratio of vector area to raster cell size area.
             Used to resample the raster to a smaller cell size
             when vector area is much smaller than raster cell size
     outND: float, default numpy NAN (np.nan), no data value to use in output
             when using compute_stats() method.
-    nd_thresh: float, default 100, threshold percent of no data within vector 
-            to return no data value (outND); for example, 60 means that 
-            if there is greater than 60% no data within vector area, 
+    nd_thresh: float, default 100, threshold percent of no data within vector
+            to return no data value (outND); for example, 60 means that
+            if there is greater than 60% no data within vector area,
             all statistics will return as no data
-    filenm: str, default 'outputfile', Filepath and name of output file 
-            without an extension specified. Default will create a file in the 
+    filenm: str, default 'outputfile', Filepath and name of output file
+            without an extension specified. Default will create a file in the
             current working directory.
-    cmap: dict, default None, Dictionary of raster values (keys, as int) and 
+    cmap: dict, default None, Dictionary of raster values (keys, as int) and
             category names (values, as str), E.g. {1:'X', 2:'Y'} used in
             compute_category() method.
             Default will create a dictionary using unique raster Values.
@@ -56,7 +57,7 @@ class ZoneClass(object):
 
 
     def __init__(self, gdb='', ras='', lyrName=None, fldname=None, projIn=None,
-                 projOut=None, buffDist=0, fact=30, outND=np.nan, 
+                 projOut=None, buffDist=0, fact=30, outND=np.nan,
                  nd_thresh=100, filenm='outputfile', cmap=None,
                  extractVal=None):
 
@@ -97,7 +98,7 @@ class ZoneClass(object):
         pixel_height = self.__gt[5]
 
         if abs(self.__theta) > 0: # if raster is rotated
-            self.__theta = self.__theta * -1 
+            self.__theta = self.__theta * -1
             vx1,vy1 = rotatePt(bbox[0][0], bbox[0][1], self.__gt, self.__theta)
             vx2,vy2 = rotatePt(bbox[1][0], bbox[1][1], self.__gt, self.__theta)
             vx3,vy3 = rotatePt(bbox[2][0], bbox[2][1], self.__gt, self.__theta)
@@ -109,12 +110,12 @@ class ZoneClass(object):
             x2 = int((env[1] - originX) / self.__res) + 1
             y1 = int((env[3] - originY) / -self.__res)
             y2 = int((env[2] - originY) / -self.__res) + 1
-        else: 
+        else:
             x1 = int((bbox[0] - originX) / pixel_width)
             x2 = int((bbox[1] - originX) / pixel_width) + 1
             y1 = int((bbox[3] - originY) / pixel_height)
             y2 = int((bbox[2] - originY) / pixel_height) + 1
-        
+
         # "Clip" the geometry bounds to the overall raster bounding box
         # This should avoid any rasterIO errors for partially overlapping polys
         if x1 < 0:
@@ -136,14 +137,14 @@ class ZoneClass(object):
     def rotatePt(self, dX, dY, gt):
         """
         Rotate coordinates to user specified angle
-        
+
         Parameters
         ----------
         dX: float, original x coordinate
         dY: float, original y coordinate
         gt: geotransform object
         theta: degree, angle to rotate coordinates
-        
+
         """
         pol = cmath.polar(complex(dX-gt[0],dY-gt[3]))
         newTheta = radians(self.__theta) + pol[1]
@@ -152,7 +153,7 @@ class ZoneClass(object):
         newy = newxy.imag + gt[3]
 
         return(newx,newy)
-     
+
     def openRaster(self):
         # Open raster
         self.__rds = gdal.Open(self.ras, GA_ReadOnly)
@@ -167,22 +168,22 @@ class ZoneClass(object):
         self.__rb = self.__rds.GetRasterBand(1)
         self.__gt = self.__rds.GetGeoTransform()
         self.__rsize = (self.__rds.RasterXSize, self.__rds.RasterYSize)
-        
+
         # Get raster cell size
         dx1 = self.__gt[1] # pixel width
-        dy1 = self.__gt[2] 
-        dx2 = self.__gt[4] 
+        dy1 = self.__gt[2]
+        dx2 = self.__gt[4]
         dy2 = self.__gt[5] # pixel height
         len1 = np.sqrt(dx1**2 + dy1 **2)
         len2 = np.sqrt(dx2**2 + dy2 **2)
         self.__ras_area = len1 * len2
 
         #if needed, angle of rotation (rotated rasters)
-        xorig = self.__gt[0] 
+        xorig = self.__gt[0]
         yorig = self.__gt[3]
-        self.__theta = degrees(atan(dy1/dx1)) # atan returns values in the interval [-pi/2,pi/2] 
+        self.__theta = degrees(atan(dy1/dx1)) # atan returns values in the interval [-pi/2,pi/2]
                                        # (or values in the range[-90, 90])
-        if yorig < xorig: 
+        if yorig < xorig:
             self.__theta = 90 - (self.__theta * -1)
         rads = self.__theta * -1 * np.pi/180.
         if rads == 0.:
@@ -195,9 +196,9 @@ class ZoneClass(object):
     def openVector(self, extractVal=None):
         # Open feature class
         if extractVal == None:
-            self.__vds = ogr.Open(self.gdb, GA_ReadOnly)  
+            self.__vds = ogr.Open(self.gdb, GA_ReadOnly)
         else:
-            self.__vds = ogr.Open(self.gdb, 1)  
+            self.__vds = ogr.Open(self.gdb, 1)
 
         if self.lyrName != None:
             self.__vlyr = self.__vds.GetLayerByName(self.lyrName)
@@ -221,7 +222,7 @@ class ZoneClass(object):
         #  6 MultiPolygon
         # 100 No Geometry
 
-        # Deal with projections      
+        # Deal with projections
         vrs = self.__vlyr.GetSpatialRef()
         if vrs is None:
             print('vector has no projection, need to define projection prior to running zonepy')
@@ -243,7 +244,7 @@ class ZoneClass(object):
             self.__targproj = self.__srcproj
 
     def vectorTest(self):
-        # test if buffer is zero and geometry is point 
+        # test if buffer is zero and geometry is point
         # advise user to implement extractByPoint
 
         if self.__geomType == 1 and self.buffDist <= 0:
@@ -259,13 +260,13 @@ class ZoneClass(object):
         if isinstance(self.buffDist, str):
             self.buffDist = feat.GetField(self.buffDist)
 
-        if self.buffDist == 0 and self.__geomType == 1: 
+        if self.buffDist == 0 and self.__geomType == 1:
             return(geom, 0.)
         elif self.buffDist == 0 and self.__geomType != 1:
             self.buffDist = -0.0001
             # return(geom, geom.GetArea())
 
-        buff = geom.Buffer(self.buffDist) 
+        buff = geom.Buffer(self.buffDist)
 
         vec_area = buff.GetArea()
         # print('Ratio Buffer to Raster: ', vec_area/ras_area)
@@ -305,7 +306,7 @@ class ZoneClass(object):
                           (self.__gt[3] + (src_offset[1] * self.__gt[5])),
                            0.0,
                            self.__gt[5]/zooms)
-            
+
                 # Create a temporary vector layer in memory
                 mem_drv = ogr.GetDriverByName('Memory')
                 mem_ds = mem_drv.CreateDataSource('out')
@@ -337,7 +338,7 @@ class ZoneClass(object):
                 mem_ds = None
                 # Resample the raster (only changes when zooms not 1)
                 src_re = zoom(src_array, zooms, order = 0)
-                
+
             return(src_re, rv_array)
 
 
@@ -365,7 +366,7 @@ class ZoneClass(object):
         cols = [str(x) for x in cols]
         df.columns = cols
         self.df = df
-        
+
         ## OUTPUT options
         print('\n{}'.format(self.filenm))
 
@@ -411,7 +412,7 @@ class ZoneClass(object):
             if src_offset[2] <= 0 or src_offset[3] <=0:
                 #if point falls outside raster grid, include nodata as zone analysis
                 masked = None
-            else: 
+            else:
                 src_re, rv_array = self.computeMask(vec_area, src_offset, buff)
 
 
@@ -443,7 +444,7 @@ class ZoneClass(object):
             # Create dictionary of station ids with pixel counts
             self.__statDict[self.__fldid] = pixel_count
 
-     
+
         self.__vds = None
         self.__rds = None
 
@@ -481,21 +482,21 @@ class ZoneClass(object):
             my = cengeom.GetY()
 
             src_offset = self.bbox_to_pixel_offsets(buff.GetEnvelope())
-            
+
             if src_offset[2] <= 0 or src_offset[3] <=0:
                 #if point falls outside raster grid, include nodata as zone analysis
                 masked = None
-            else: 
+            else:
                 src_re, rv_array = self.computeMask(vec_area, src_offset, buff)
                 # self.computeArrays(zooms) # duplicated?
-                
+
                 # Mask the source data array with our current feature
                 # we take the logical_not to flip 0<->1 to get the correct mask effect
                 # we also mask out nodata values explictly
                 masked = np.ma.MaskedArray(src_re,
                     mask=np.logical_or(
                         src_re == self.__orig_nodata, # nodata_value,
-                        np.logical_not(rv_array))) 
+                        np.logical_not(rv_array)))
 
                 # Calculate the percent of No Data in masked array
                 nd = 0
@@ -514,6 +515,7 @@ class ZoneClass(object):
                     'sum': float(np.ma.masked_invalid(masked).sum()),
                     'count': int(np.ma.masked_invalid(masked).count()),
                     'median': float(np.ma.median(np.ma.masked_invalid(masked))),
+                    # 'majority': Counter(masked.compressed()).most_common(1),
                     'long': mx,
                     'lat': my}
 
@@ -526,6 +528,7 @@ class ZoneClass(object):
                 'sum': self.outND,
                 'count': self.outND,
                 'median': self.outND,
+                # 'majority': self.outND,
                 'long': mx,
                 'lat': my}
 
@@ -582,8 +585,8 @@ class ZoneClass(object):
             self.__vlyr.CreateField(fieldDef)
 
         self.__statDict = {}
-        for feat in self.__vlyr: 
-            self.getField(feat)  
+        for feat in self.__vlyr:
+            self.getField(feat)
 
             buff, vec_area = self.bufferGeom(feat)
             mx = buff.GetX()
@@ -601,7 +604,7 @@ class ZoneClass(object):
                 val = self.outND
 
             self.__statDict[self.__fldid] = (val, mx, my)
-            
+
         self.__vds = None
         self.__rds = None
 
@@ -617,7 +620,7 @@ class ZoneClass(object):
         Parameters
         ----------
         stat: str, default = 'mean', Summary statistic to use for raster creation.
-                Options are 'min' (minimum), 'mean', 'max' (maximum), 'std' 
+                Options are 'min' (minimum), 'mean', 'max' (maximum), 'std'
                 (standard deviation), 'sum', 'count', 'median'
         outTiff: str, Filepath and name of created raster
         inputfile: str, filename of pickle or csv from compute_stats. if None, it
@@ -668,10 +671,10 @@ class ZoneClass(object):
     def array2Raster(self, grid, ext, sz, outTiff='outras.tif'):
         '''
         Create raster from numpy array and extent
-        
+
         Parameters
         ----------
-        grid: numpy array, numpy array of raster to be created with correct shape 
+        grid: numpy array, numpy array of raster to be created with correct shape
                 (rows and columns)
         ext: tuple, tuple of floats for raster extent, ordered as
                 x minimum, x maximum, y minimum, y maximum
@@ -687,7 +690,7 @@ class ZoneClass(object):
         angle = 0
         angle = angle * -1. * np.pi / 180.
         geotransform = (ext[0], sz[0] * np.cos(angle), -sz[0] * np.sin(angle),
-                        ext[3], -sz[1] * np.sin(angle), -sz[1] * np.cos(angle)) 
+                        ext[3], -sz[1] * np.sin(angle), -sz[1] * np.cos(angle))
 
         # Create raster to hold data
         nrow = grid.shape[0]
@@ -700,7 +703,7 @@ class ZoneClass(object):
         band.SetNoDataValue(self.outND)
 
         # Set coordinates and projection
-        ds.SetGeoTransform(geotransform)  
+        ds.SetGeoTransform(geotransform)
         ds.SetProjection(self.__srcproj.ExportToWkt())
 
         # Write array to raster
@@ -722,7 +725,7 @@ class ZoneClass(object):
         drv = ogr.GetDriverByName('ESRI Shapefile')
         if os.path.exists(shp):
             drv.DeleteDataSource(shp)
-        ds = drv.CreateDataSource(shp) 
+        ds = drv.CreateDataSource(shp)
         # lyr = ds.CreateLayer('lyr', geom_type=ogr.wkbPoint)
         self.df2features(ds)
 
@@ -732,7 +735,7 @@ class ZoneClass(object):
         drv = ogr.GetDriverByName('GPKG')
         # if os.path.exists(shp):
             # drv.DeleteDataSource(shp)
-        ds = drv.CreateDataSource(shp) 
+        ds = drv.CreateDataSource(shp)
         self.df2features(ds)
 
     def df2features(self, ds=''):
