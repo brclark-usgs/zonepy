@@ -159,11 +159,11 @@ class ZoneClass(object):
         self.__rds = gdal.Open(self.ras, GA_ReadOnly)
         assert(self.__rds)
         #get projection info
-        self.__rproj4 = self.__rds.GetProjection()
-        if self.__rproj4 is None:
+        self.__rproj = self.__rds.GetProjection()
+        if self.__rproj is None:
             print('raster has no projection, need to define projection prior to running zonepy')
         rsr = osr.SpatialReference()
-        rsr.ImportFromWkt(self.__rproj4)
+        rsr.ImportFromWkt(self.__rproj)
         self.__rproj4 = rsr.ExportToProj4()
         self.__rb = self.__rds.GetRasterBand(1)
         self.__gt = self.__rds.GetGeoTransform()
@@ -551,6 +551,32 @@ class ZoneClass(object):
         ##OUTPUT
 
         self.createDF('zonestat')
+
+    def gdalProj(self, referencefile, outTiff='outras.tif'):
+        """
+        method to by-pass looping over each feature and instead
+        use gdal.ReprojectImage()
+        orders of magnitude faster than looping.
+        """
+
+        self.openRaster()
+
+        # referencefile = '/Users/brclark/brc/projects/natlMod/NHGtools/examples/meras1kmCellNum.tif'
+        reference = gdal.Open(referencefile, GA_ReadOnly)
+        referenceProj = reference.GetProjection()
+        referenceTrans = reference.GetGeoTransform()
+        x = reference.RasterXSize
+        y = reference.RasterYSize
+
+        driver = gdal.GetDriverByName('GTiff')
+        output = driver.Create(outTiff, x, y, 1, gdal.GDT_Float32)
+        output.SetGeoTransform(referenceTrans)
+        output.SetProjection(referenceProj)
+
+        gdal.ReprojectImage(self.__rds, output, self.__rproj,
+                            referenceProj, GRA_Average)
+
+        del output
 
     def extractByPoint(self, extractVal='extractVal'):
         """
