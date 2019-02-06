@@ -448,7 +448,8 @@ class ZoneClass(object):
         self.__rds = None
 
         # Create dataframe from dictionary, transpose
-        self.createDF('zonecat')
+        self.__flag = 'zonecat'
+        self.createDF(self.__flag)
 
 
     def compute_stats(self):
@@ -546,8 +547,8 @@ class ZoneClass(object):
         self.__rds = None
 
         ##OUTPUT
-
-        self.createDF('zonestat')
+        self.__flag = 'zonestat'
+        self.createDF(self.__flag)
 
     def extractByPoint(self, extractVal='extractVal'):
         """
@@ -642,7 +643,7 @@ class ZoneClass(object):
         vext = self.__vlyr.GetExtent()
         cols = int(round(((vext[1] - vext[0]) / xsz),0))
         rows = int(round(((vext[3] - vext[2]) / ysz),0))
-        # print(rows,cols)
+        print(rows,cols)
 
         if inputfile == None:
             df = self.df
@@ -652,13 +653,23 @@ class ZoneClass(object):
         elif inputfile.endswith('csv'):
             df = pd.read_csv(inputfile)
 
-        a = df[stat].values
+        if self.__flag == 'zonestat':
+            a = df[stat].values
 
-        # Reshape to zone shape
-        a = a.reshape((rows,cols))
+            # Reshape to zone shape
+            a = a.reshape((rows,cols))
 
-        # Write raster
-        self.array2Raster(a, vext, sz, outTiff=outTiff)
+            # Write raster
+            self.array2Raster(a, vext, sz, outTiff=outTiff)
+        else: #category
+            dfcols = df.columns.tolist()
+            dfcols = dfcols[1:-2]
+            for c in dfcols:
+                a = df[c].values
+                a = a.reshape((rows,cols))
+                outname = os.path.splitext(outTiff)[0] + '_{}.tif'.format(c)
+                self.array2Raster(a, vext, sz, outTiff=outname)
+
 
         # Clear memory
         self.__vds = None
