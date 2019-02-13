@@ -425,6 +425,7 @@ class ZoneClass(object):
                 pixel_count['NoData'] = 100
             else:
                 keys, counts = np.unique(masked.compressed(), return_counts=True)
+                #print(keys)
                 if cmapFlag == False:
                     for k in keys:
                         self.cmap[k] = k
@@ -643,7 +644,7 @@ class ZoneClass(object):
         vext = self.__vlyr.GetExtent()
         cols = int(round(((vext[1] - vext[0]) / xsz),0))
         rows = int(round(((vext[3] - vext[2]) / ysz),0))
-        print(rows,cols)
+        #print(rows,cols)
 
         if inputfile == None:
             df = self.df
