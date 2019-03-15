@@ -34,7 +34,7 @@ class ZoneClass(object):
     fldname: str, default None, Unique identifier field of vector data. 
             Default will select first column in feature class
     buffDist: int, default 0, Linear distance to buffer vector data, 
-            in same units as projOut. Default will return the raster cell 
+            in same units as vector data. Default will return the raster cell 
             value for point data.
     fact: int, default 30, Ratio of vector area to raster cell size area. 
             Used to resample the raster to a smaller cell size
@@ -55,9 +55,8 @@ class ZoneClass(object):
     """
 
 
-    def __init__(self, gdb='', ras='', lyrName=None, fldname=None, projIn=None,
-                 projOut=None, buffDist=0, fact=30, outND=np.nan, 
-                 nd_thresh=100, filenm='outputfile', cmap=None,
+    def __init__(self, gdb='', ras='', lyrName=None, fldname=None,buffDist=0, 
+				fact=30, outND=np.nan, nd_thresh=100, filenm='outputfile', cmap=None,
                  extractVal=None):
 
         self.gdb = gdb
@@ -557,7 +556,6 @@ class ZoneClass(object):
 
         extractVal: string, default None, column name for new field if extractByPoint
                   method is used
-        output: output type for point extraction, default is csv
         """
         import struct
 
