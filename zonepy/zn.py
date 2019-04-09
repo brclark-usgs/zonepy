@@ -666,7 +666,7 @@ class ZoneClass(object):
             for c in dfcols:
                 a = df[c].values
                 a = a.reshape((rows,cols))
-                outname = os.path.splitext(outTiff)[0] + '_{}.tif'.format(c)
+                outname = os.path.splitext(outTiff)[0] + '{}.tif'.format(c)
                 self.array2Raster(a, vext, sz, outTiff=outname)
 
 
