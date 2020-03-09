@@ -506,12 +506,19 @@ class ZoneClass(object):
                 mDict = dict(zip(keys,counts))
                 print('\t')
                 print(mDict)
-                print('\t')
-                print(keys)
+                # print('\t')
+                # print(keys)
                 # print(mDict[self.__orig_nodata])
                 if self.__orig_nodata in keys:
                     nd = mDict[self.__orig_nodata] / (masked_nd.shape[0] * masked_nd.shape[1]) * 100
                     print('calculated no data: ', np.round(nd,2))
+                if np.NINF in keys: #why doesnt this work?
+                    print('infinity loop')
+                #     mDict[np.NINF]
+                #     nd = mDict[np.NINF] / (masked_nd.shape[0] * masked_nd.shape[1]) * 100
+                #     print('calculated no data: ', np.round(nd,2))
+                if self.__orig_nodata or np.NINF in keys: # but this does?
+                    print('third loopy')
 
 
                 feature_stats = {
@@ -537,6 +544,7 @@ class ZoneClass(object):
                 'long': mx,
                 'lat': my}
 
+            print(feature_stats['mean'])
             # print('no data percent: {}, no data threshold: {}\n'.format(nd,nd_thresh))
             if masked is not None:
                 print('\t')
