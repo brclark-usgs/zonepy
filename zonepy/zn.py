@@ -190,6 +190,7 @@ class ZoneClass(object):
 
         #Get NoData value
         self.__orig_nodata = self.__rb.GetNoDataValue()
+        print('raster no data value', self.__orig_nodata)
 
     def openVector(self, extractVal=None):
         # Open feature class
@@ -503,8 +504,14 @@ class ZoneClass(object):
                 masked_nd = np.ma.MaskedArray(src_re, mask = np.logical_not(rv_array))
                 keys, counts = np.unique(masked_nd.compressed(), return_counts=True)
                 mDict = dict(zip(keys,counts))
+                print('\t')
+                print(mDict)
+                print('\t')
+                print(keys)
+                # print(mDict[self.__orig_nodata])
                 if self.__orig_nodata in keys:
                     nd = mDict[self.__orig_nodata] / (masked_nd.shape[0] * masked_nd.shape[1]) * 100
+                    print('calculated no data: ', np.round(nd,2))
 
 
                 feature_stats = {
@@ -532,14 +539,22 @@ class ZoneClass(object):
 
             # print('no data percent: {}, no data threshold: {}\n'.format(nd,nd_thresh))
             if masked is not None:
+                print('\t')
+                print('calculating stats...')
                 if np.isnan(float(np.ma.masked_invalid(masked).mean())):
+                    print('all nan')
                     self.__statDict[self.__fldid] = no_stats # if all NAN, return nodata value
                 else:
+                    print('no data percent: {}, no data threshold: {}\n'.format(np.round(nd,2),self.nd_thresh))
                     if nd >= self.nd_thresh: # insufficient data, return nodata value
                         self.__statDict[self.__fldid] = no_stats
+                        print('insufficient data')
                     else: # sufficient data, return stats
                         self.__statDict[self.__fldid] = feature_stats
+                        print('stats calculated')
             else:
+                print('\t')
+                print('point outside of raster extent')
                 self.__statDict[self.__fldid] = no_stats # if outside of raster extent, return nodata value
 
         #clearing memory
