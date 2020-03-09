@@ -500,25 +500,30 @@ class ZoneClass(object):
                         np.logical_not(rv_array))) 
 
                 # Calculate the percent of No Data in masked array
-                nd = 0
                 masked_nd = np.ma.MaskedArray(src_re, mask = np.logical_not(rv_array))
+                print(masked_nd)
+                # neither of these work...
+                if self.__orig_nodata < -340000000000000000000000000000000000000: # arc no data value
+                    masked_nd[masked_nd < -340000000000000000000000000000000000000] = -340000000000000000000000000000000000000
+                if self.__orig_nodata < -340000000000000000000000000000000000000: # arc no data value
+                    masked_nd[masked_nd < -340000000000000000000000000000000000000] = np.nan
+                print(masked_nd)
+
                 keys, counts = np.unique(masked_nd.compressed(), return_counts=True)
                 mDict = dict(zip(keys,counts))
                 print('\t')
                 print(mDict)
                 # print('\t')
-                # print(keys)
-                # print(mDict[self.__orig_nodata])
+                # print('{:.20f}, {:.20f}'.format(keys[0], self.__orig_nodata))
                 if self.__orig_nodata in keys:
                     nd = mDict[self.__orig_nodata] / (masked_nd.shape[0] * masked_nd.shape[1]) * 100
                     print('calculated no data: ', np.round(nd,2))
-                if np.NINF in keys: #why doesnt this work?
-                    print('infinity loop')
-                #     mDict[np.NINF]
-                #     nd = mDict[np.NINF] / (masked_nd.shape[0] * masked_nd.shape[1]) * 100
-                #     print('calculated no data: ', np.round(nd,2))
-                if self.__orig_nodata or np.NINF in keys: # but this does?
-                    print('third loopy')
+                elif -340000000000000000000000000000000000000 in keys:
+                    nd = mDict[self.__orig_nodata] / (masked_nd.shape[0] * masked_nd.shape[1]) * 100
+                    print('calculated no data: ', np.round(nd,2))
+                else:
+                    nd = 0
+                                     
 
 
                 feature_stats = {
