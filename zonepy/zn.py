@@ -190,7 +190,7 @@ class ZoneClass(object):
 
         #Get NoData value
         self.__orig_nodata = self.__rb.GetNoDataValue()
-        print('raster no data value', self.__orig_nodata)
+        # print('raster no data value', self.__orig_nodata)
 
     def openVector(self, extractVal=None):
         # Open feature class
@@ -501,26 +501,28 @@ class ZoneClass(object):
 
                 # Calculate the percent of No Data in masked array
                 masked_nd = np.ma.MaskedArray(src_re, mask = np.logical_not(rv_array))
-                print(masked_nd)
+                # print(masked_nd)
                 # neither of these work...
+                # if self.__orig_nodata < -340000000000000000000000000000000000000: # arc no data value
+                #     masked_nd[masked_nd < -340000000000000000000000000000000000000] = -340000000000000000000000000000000000000
+                # if self.__orig_nodata < -340000000000000000000000000000000000000: # arc no data value
+                #     masked_nd[masked_nd < -340000000000000000000000000000000000000] = np.nan
                 if self.__orig_nodata < -340000000000000000000000000000000000000: # arc no data value
-                    masked_nd[masked_nd < -340000000000000000000000000000000000000] = -340000000000000000000000000000000000000
-                if self.__orig_nodata < -340000000000000000000000000000000000000: # arc no data value
-                    masked_nd[masked_nd < -340000000000000000000000000000000000000] = np.nan
-                print(masked_nd)
+                    masked_nd[masked_nd < -340000000000000000000000000000000000000] = -9999
+                # print(masked_nd)
 
                 keys, counts = np.unique(masked_nd.compressed(), return_counts=True)
                 mDict = dict(zip(keys,counts))
-                print('\t')
-                print(mDict)
+                # print('\t')
+                # print(mDict)
                 # print('\t')
                 # print('{:.20f}, {:.20f}'.format(keys[0], self.__orig_nodata))
                 if self.__orig_nodata in keys:
                     nd = mDict[self.__orig_nodata] / (masked_nd.shape[0] * masked_nd.shape[1]) * 100
-                    print('calculated no data: ', np.round(nd,2))
-                elif -340000000000000000000000000000000000000 in keys:
-                    nd = mDict[self.__orig_nodata] / (masked_nd.shape[0] * masked_nd.shape[1]) * 100
-                    print('calculated no data: ', np.round(nd,2))
+                    # print('calculated no data: ', np.round(nd,2))
+                elif -9999 in keys:
+                    nd = mDict[-9999] / (masked_nd.shape[0] * masked_nd.shape[1]) * 100
+                    # print('calculated no data: ', np.round(nd,2))
                 else:
                     nd = 0
                                      
@@ -549,25 +551,24 @@ class ZoneClass(object):
                 'long': mx,
                 'lat': my}
 
-            print(feature_stats['mean'])
             # print('no data percent: {}, no data threshold: {}\n'.format(nd,nd_thresh))
             if masked is not None:
-                print('\t')
-                print('calculating stats...')
+                # print('\t')
+                # print('calculating stats...')
                 if np.isnan(float(np.ma.masked_invalid(masked).mean())):
-                    print('all nan')
+                    # print('all nan')
                     self.__statDict[self.__fldid] = no_stats # if all NAN, return nodata value
                 else:
-                    print('no data percent: {}, no data threshold: {}\n'.format(np.round(nd,2),self.nd_thresh))
+                    # print('no data percent: {}, no data threshold: {}\n'.format(np.round(nd,2),self.nd_thresh))
                     if nd >= self.nd_thresh: # insufficient data, return nodata value
                         self.__statDict[self.__fldid] = no_stats
-                        print('insufficient data')
+                        # print('insufficient data')
                     else: # sufficient data, return stats
                         self.__statDict[self.__fldid] = feature_stats
-                        print('stats calculated')
+                        # print('stats calculated')
             else:
-                print('\t')
-                print('point outside of raster extent')
+                # print('\t')
+                # print('point outside of raster extent')
                 self.__statDict[self.__fldid] = no_stats # if outside of raster extent, return nodata value
 
         #clearing memory
