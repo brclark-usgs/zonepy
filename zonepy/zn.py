@@ -190,7 +190,7 @@ class ZoneClass(object):
 
         #Get NoData value
         self.__orig_nodata = self.__rb.GetNoDataValue()
-        # print('raster no data value', self.__orig_nodata)
+        print('raster no data value', self.__orig_nodata)
 
     def openVector(self, extractVal=None):
         # Open feature class
@@ -505,10 +505,9 @@ class ZoneClass(object):
                 # neither of these work...
                 # if self.__orig_nodata < -340000000000000000000000000000000000000: # arc no data value
                 #     masked_nd[masked_nd < -340000000000000000000000000000000000000] = -340000000000000000000000000000000000000
-                # if self.__orig_nodata < -340000000000000000000000000000000000000: # arc no data value
-                #     masked_nd[masked_nd < -340000000000000000000000000000000000000] = np.nan
-                if self.__orig_nodata < -340000000000000000000000000000000000000: # arc no data value
-                    masked_nd[masked_nd < -340000000000000000000000000000000000000] = -9999
+                if self.__orig_nodata is not None:
+                    if self.__orig_nodata < -340000000000000000000000000000000000000: # arc no data value
+                        masked_nd[masked_nd < -340000000000000000000000000000000000000] = -9999
                 # print(masked_nd)
 
                 keys, counts = np.unique(masked_nd.compressed(), return_counts=True)
