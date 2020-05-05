@@ -15,7 +15,7 @@ from osgeo.gdalconst import *
 import numpy as np
 import pandas as pd
 from scipy.ndimage import zoom
-from math import radians, degrees, atan
+from math import radians, degrees, atan, isclose
 import warnings
 # gdal.PushErrorHandler('CPLQuietErrorHandler')
  
@@ -502,12 +502,11 @@ class ZoneClass(object):
                 # Calculate the percent of No Data in masked array
                 masked_nd = np.ma.MaskedArray(src_re, mask = np.logical_not(rv_array))
                 # print(masked_nd)
-                # neither of these work...
-                # if self.__orig_nodata < -340000000000000000000000000000000000000: # arc no data value
-                #     masked_nd[masked_nd < -340000000000000000000000000000000000000] = -340000000000000000000000000000000000000
                 if self.__orig_nodata is not None:
-                    if self.__orig_nodata < -340000000000000000000000000000000000000: # arc no data value
-                        masked_nd[masked_nd < -340000000000000000000000000000000000000] = -9999
+                    if self.__orig_nodata < -3.4e38: # arc no data value
+                        masked_nd[masked_nd < -3.4e38] = -9999
+                    if self.__orig_nodata > 1.7e38: # QGIS no data value
+                        masked_nd[masked_nd > 1.7e38] = -9999
                 # print(masked_nd)
 
                 keys, counts = np.unique(masked_nd.compressed(), return_counts=True)
@@ -624,9 +623,16 @@ class ZoneClass(object):
                 intval = struct.unpack('f' , structval) #use the 'float' format code (8 bytes) not int (4 bytes)
                 val = intval[0]
                 if intval[0] < -9999:
-                    val = -9999
+                    val = self.outND
             except:
                 val = self.outND
+            # print(self.__fldid, val)
+            if self.__orig_nodata is not None:
+                if val < -3.4e38: # arc no data value
+                    val = self.outND
+                if val > 1.7e38: # QGIS no data value
+                    val = self.outND
+                    # print('new val', val)
 
             self.__statDict[self.__fldid] = (val, mx, my)
             
