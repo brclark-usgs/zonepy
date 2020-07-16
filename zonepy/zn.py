@@ -632,10 +632,13 @@ class ZoneClass(object):
                     val = self.outND
                 if val > 1.7e38: # QGIS no data value
                     val = self.outND
-                    # print('new val', val)
+                    # print('new val!', val)
+                if val == self.__orig_nodata:
+                    val = self.outND
+                    # print('new val!', val)
 
             self.__statDict[self.__fldid] = (val, mx, my)
-            
+        # print('no data',self.__orig_nodata)  
         self.__vds = None
         self.__rds = None
 
