@@ -491,13 +491,6 @@ class ZoneClass(object):
                 src_re, rv_array = self.computeMask(vec_area, src_offset, buff)
                 # self.computeArrays(zooms) # duplicated?
                 
-                # Mask the source data array with our current feature
-                # we take the logical_not to flip 0<->1 to get the correct mask effect
-                # we also mask out nodata values explictly
-                masked = np.ma.MaskedArray(src_re,
-                    mask=np.logical_or(
-                        src_re == self.__orig_nodata, # nodata_value,
-                        np.logical_not(rv_array))) 
 
                 # Calculate the percent of No Data in masked array
                 masked_nd = np.ma.MaskedArray(src_re, mask = np.logical_not(rv_array))
@@ -515,6 +508,8 @@ class ZoneClass(object):
                 # print(mDict)
                 # print('\t')
                 # print('{:.20f}, {:.20f}'.format(keys[0], self.__orig_nodata))
+
+                # calculate nd value in buffer
                 if self.__orig_nodata in keys:
                     nd = mDict[self.__orig_nodata] / (masked_nd.shape[0] * masked_nd.shape[1]) * 100
                     # print('calculated no data: ', np.round(nd,2))
@@ -524,7 +519,20 @@ class ZoneClass(object):
                 else:
                     nd = 0
                                      
-
+                # Mask the source data array with our current feature
+                # we take the logical_not to flip 0<->1 to get the correct mask effect
+                # we also mask out nodata values explictly
+                if -9999 in keys: # to deal with ArcGIS/QGIS no data value, force no data to -9999
+                    masked = np.ma.MaskedArray(src_re,
+                        mask=np.logical_or(
+                            src_re == -9999, # nodata_value,
+                            np.logical_not(rv_array))) 
+                else:
+                    masked = np.ma.MaskedArray(src_re,
+                        mask=np.logical_or(
+                            src_re == self.__orig_nodata, # nodata_value,
+                            np.logical_not(rv_array))) 
+                
 
                 feature_stats = {
                     'min': float(np.ma.masked_invalid(masked).min()),
@@ -564,6 +572,7 @@ class ZoneClass(object):
                     else: # sufficient data, return stats
                         self.__statDict[self.__fldid] = feature_stats
                         # print('stats calculated')
+                        # print(self.__statDict[self.__fldid])
             else:
                 # print('\t')
                 # print('point outside of raster extent')
@@ -576,6 +585,8 @@ class ZoneClass(object):
         ##OUTPUT
         self.__flag = 'zonestat'
         self.createDF(self.__flag)
+
+        
 
     def extractByPoint(self, extractVal='extractVal'):
         """
