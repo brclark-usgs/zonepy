@@ -620,12 +620,16 @@ class ZoneClass(object):
             self.__vlyr.CreateField(fieldDef)
 
         self.__statDict = {}
+        lenid = len(self.__vlyr)
         for feat in self.__vlyr: 
             self.getField(feat)  
+            # sys.stdout.write('\r{} of {}, id: {}'.format(i+1, lenid, self.__fldid))
+            # sys.stdout.flush()
 
             buff, vec_area = self.bufferGeom(feat)
             mx = buff.GetX()
             my = buff.GetY()
+            # print(mx,my)
 
             px = int((mx - self.__gt[0]) / self.__gt[1]) #x pixel
             py = int((my - self.__gt[3]) / self.__gt[5]) #y pixel
